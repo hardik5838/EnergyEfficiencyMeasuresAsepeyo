@@ -14,7 +14,7 @@
         }
         .chart-container {
             background-color: white;
-            padding: 1.5rem;
+            padding: 1 rem;
             border-radius: 0.75rem;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
@@ -251,7 +251,7 @@
                 },
                 annotation: {
                     annotations: {
-                        line1: { type: 'line', xMin: 1.5, xMax: 1.5, borderColor: 'rgba(0,0,0,0.2)', borderWidth: 2 },
+                        line1: { type: 'line', xMin: 1, xMax: 1, borderColor: 'rgba(0,0,0,0.2)', borderWidth: 2 },
                         line2: { type: 'line', yMin: 2000, yMax: 2000, borderColor: 'rgba(0,0,0,0.2)', borderWidth: 2 },
                         label1: { type: 'label', xValue: 0.5, yValue: 5000, content: 'Just Do It!', font: { size: 16, weight: 'bold' }, color: 'rgba(0,0,0,0.6)' },
                         label2: { type: 'label', xValue: 2.5, yValue: 5000, content: 'Strategic Projects', font: { size: 16, weight: 'bold' }, color: 'rgba(0,0,0,0.6)' },
