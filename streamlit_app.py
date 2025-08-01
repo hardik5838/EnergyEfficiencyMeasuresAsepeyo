@@ -208,7 +208,97 @@ else:
         )
         st.altair_chart(chart_b, use_container_width=True)
 
+ # Chart 2.2: "Low-Hanging Fruit" Matrix
+        st.markdown("### Low-Hanging Fruit Matrix")
 
+        # Create a base scatter plot
+        base_chart = alt.Chart(df_audit).mark_point(
+            color='#007BFF'
+        ).encode(
+            x=alt.X('periodo_retorno_simple_anos', axis=alt.Axis(title='Payback Period (Years)')),
+            y=alt.Y('ahorro_economico_eur', axis=alt.Axis(title='Annual Economic Savings (€)')),
+            tooltip=[
+                alt.Tooltip('medida_mejora', title='Measure'),
+                alt.Tooltip('centro_asistencial', title='Center'),
+                alt.Tooltip('ahorro_economico_eur', title='Savings', format='€,.0f'),
+                alt.Tooltip('periodo_retorno_simple_anos', title='Payback', format='.1f')
+            ]
+        ).properties(
+            title="Project Prioritization Matrix"
+        )
+        
+        # Add a vertical dashed line
+        vline = alt.Chart(pd.DataFrame({'x': [1.5]})).mark_rule(
+            color='#6C757D', strokeDash=[3, 3]
+        ).encode(
+            x='x'
+        )
+        
+        # Add a horizontal dashed line
+        hline = alt.Chart(pd.DataFrame({'y': [1000]})).mark_rule(
+            color='#6C757D', strokeDash=[3, 3]
+        ).encode(
+            y='y'
+        )
+        
+        # Combine the chart with the lines
+        combined_chart = base_chart + vline + hline
+
+        # Add the text label
+        text = alt.Chart(pd.DataFrame({'x': [2], 'y': [500], 'text': ['High Priority Projects']})).mark_text(
+            align='right', baseline='bottom', dx=-5, dy=-5, color='#6C757D'
+        ).encode(
+            x='x',
+            y='y',
+            text='text'
+        )
+        
+        # Final combined chart with text (Altair doesn't support text placement natively on top of other elements)
+        # We will manually add text on the app
+        st.markdown('<p style="text-align: right; color: #6C757D;">High Priority Projects</p>', unsafe_allow_html=True)
+        st.altair_chart(combined_chart, use_container_width=True)
+        
+        st.markdown("---")
+        
+        # Chart 2.3: First-Year Return on Investment
+        st.markdown("### First-Year Return on Investment")
+        
+        roi_data = df_audit.groupby('comunidad_autonoma').agg(
+            total_investment=('inversion_eur', 'sum'),
+            total_savings=('ahorro_economico_eur', 'sum')
+        ).reset_index()
+        
+        # Calculate remaining investment
+        roi_data['remaining_investment'] = roi_data['total_investment'] - roi_data['total_savings']
+        
+        # Handle cases where savings exceed investment
+        roi_data['remaining_investment'] = roi_data['remaining_investment'].apply(lambda x: max(x, 0))
+
+        # Melt the DataFrame for stacked bar chart
+        roi_melted = roi_data.melt(
+            id_vars='comunidad_autonoma', 
+            value_vars=['total_savings', 'remaining_investment'],
+            var_name='roi_type',
+            value_name='value'
+        )
+        
+        chart_2_3 = alt.Chart(roi_melted).mark_bar().encode(
+            x=alt.X('comunidad_autonoma', axis=alt.Axis(title='Comunidad Autónoma')),
+            y=alt.Y('value', stack="normalize", axis=alt.Axis(title='Proportion of Investment')),
+            color=alt.Color(
+                'roi_type',
+                scale=alt.Scale(domain=['total_savings', 'remaining_investment'], range=['#28A745', '#CED4DA']),
+                legend=alt.Legend(title="Investment Breakdown", labelExpr="datum.label == 'total_savings' ? 'Annual Savings' : 'Remaining Investment'")
+            ),
+            tooltip=[
+                alt.Tooltip('comunidad_autonoma', title='Comunidad'),
+                alt.Tooltip('roi_type', title='Type'),
+                alt.Tooltip('value', title='Value', format='€,.0f')
+            ]
+        ).properties(
+            title="First-Year Economic Return by Region"
+        )
+        st.altair_chart(chart_2_3, use_container_width=True)
 
 
 # --- Future Development Ideas ---
