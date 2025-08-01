@@ -101,9 +101,9 @@ else:
     
     st.markdown(
         f"""
-        <div style="background-color: #F8D7DA; padding: 20px; border-radius: 5px; text-align: center;">
-            <h5 style="color: #DC3545; font-size: 20px;">Daily Cost of Delay</h5>
-            <h1 style="color: #DC3545; font-size: 48px; margin-top: -10px;">€{daily_cost_of_delay:,.2f}</h1>
+        <div style="background-color: #ffdbdb; padding: 20px; border-radius: 5px; text-align: center;">
+            <h3 style="color: #000000; font-size: 20px;">Daily Cost of Delay</h3>
+            <h1 style="color: #000000; font-size: 48px; margin-top: -10px;">€{daily_cost_of_delay:,.2f}</h1>
             <p style="color: #DC3545;">Economic savings lost each day by not implementing zero-cost measures.</p>
         </div>
         """,
