@@ -4,7 +4,7 @@ import pandas as pd
 # This is the URL to the raw CSV file on GitHub.
 # You will need to replace 'YOUR_USERNAME', 'YOUR_REPO_NAME', and 'YOUR_BRANCH'
 # with your actual GitHub details.
-csv_url = "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO_NAME/YOUR_BRANCH/data/2025 Energy Audit summary.xlsx - Sheet1.csv"
+csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 
 # Function to load and clean the data
 def load_data(url):
