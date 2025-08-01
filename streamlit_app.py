@@ -4,28 +4,6 @@ import altair as alt
 
 csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 
-Thank you for providing the traceback. It looks like the same `KeyError` is appearing in both instances, pointing to the line where the app tries to group data by the column `'comunidad_autonoma'`.
-
-This `KeyError` happens because the column `'comunidad_autonoma'` does not exist in the DataFrame `df_audit`.
-
-In the previous response, I mapped the original column names to the new, user-friendly names. However, the `df.rename()` function only renames the columns on the DataFrame. The rest of the code still needs to refer to the new, renamed columns. The traceback shows that the code is still trying to access the original column names.
-
-To fix this, we need to update the `load_data` function to return the DataFrame with the new column names and then use those new column names throughout the rest of the application code.
-
-### Step-by-step fix:
-
-1.  **Modify the `load_data` function** to correctly apply the column name mapping.
-2.  **Update the rest of the code** to refer to the new column names. For example, instead of `'Center'`, we'll use `'comunidad_autonoma'`, and instead of `'Money Saved'`, we'll use `'ahorro_economico_eur'`.
-
-Here is the corrected and complete `app.py` code. Please replace your entire `app.py` file with this code.
-
-```python
-import streamlit as st
-import pandas as pd
-import altair as alt
-
-csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
-
 # Function to load and clean the data
 @st.cache_data
 def load_data(url):
