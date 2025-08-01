@@ -208,10 +208,10 @@ else:
         )
         st.altair_chart(chart_b, use_container_width=True)
 
- # Chart 2.2: "Low-Hanging Fruit" Matrix
+        # Chart 2.2: "Low-Hanging Fruit" Matrix
         st.markdown("### Low-Hanging Fruit Matrix")
 
-        # Create a base scatter plot
+        # Create the base scatter plot
         base_chart = alt.Chart(df_audit).mark_point(
             color='#007BFF'
         ).encode(
@@ -229,35 +229,34 @@ else:
         
         # Add a vertical dashed line
         vline = alt.Chart(pd.DataFrame({'x': [1.5]})).mark_rule(
-            color='#6C757D', strokeDash=[3, 3]
+            color='#6C757D', strokeDash=[4, 4]
         ).encode(
             x='x'
         )
         
         # Add a horizontal dashed line
         hline = alt.Chart(pd.DataFrame({'y': [1000]})).mark_rule(
-            color='#6C757D', strokeDash=[3, 3]
+            color='#6C757D', strokeDash=[4, 4]
         ).encode(
             y='y'
         )
         
-        # Combine the chart with the lines
+        # Layer the scatter plot and the dashed lines
         combined_chart = base_chart + vline + hline
-
-        # Add the text label
-        text = alt.Chart(pd.DataFrame({'x': [2], 'y': [500], 'text': ['High Priority Projects']})).mark_text(
-            align='right', baseline='bottom', dx=-5, dy=-5, color='#6C757D'
-        ).encode(
-            x='x',
-            y='y',
-            text='text'
-        )
         
-        # Final combined chart with text (Altair doesn't support text placement natively on top of other elements)
-        # We will manually add text on the app
-        st.markdown('<p style="text-align: right; color: #6C757D;">High Priority Projects</p>', unsafe_allow_html=True)
+        # Display the chart
         st.altair_chart(combined_chart, use_container_width=True)
-        
+
+        # Add the text label separately using markdown for robustness
+        st.markdown(
+            f"""
+            <div style="text-align: right; color: #6C757D; margin-top: -20px;">
+                High Priority Projects
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
         st.markdown("---")
         
         # Chart 2.3: First-Year Return on Investment
