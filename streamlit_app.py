@@ -421,7 +421,10 @@ else:
             title="Proportion of Measure Types by Region"
         )
         st.altair_chart(chart_3_3, use_container_width=True)
-    with tab4:
+        
+        
+        
+        with tab4:
         st.header("High-Impact Investments & Future Vision")
 
         # Chart 4.1: "Photovoltaic Potential" Map
