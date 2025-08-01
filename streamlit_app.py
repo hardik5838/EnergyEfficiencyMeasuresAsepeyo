@@ -63,10 +63,11 @@ if df_audit.empty:
     st.warning("Could not load the energy audit data. Please check the GitHub URL and file path.")
 else:
     # --- Tabbed interface ---
-    tab1, tab2, tab3 = st.tabs([
+    tab1, tab2, tab3, tab4 = st.tabs([
         "Executive Summary & Command Center", 
         "Quick Wins & Immediate Actions", 
-        "Strategic Rollouts & Scalable Projects"
+        "Strategic Rollouts & Scalable Projects",
+        "High-Impact Investments & Future Vision"
     ])
 
 
@@ -418,6 +419,134 @@ else:
             title="Proportion of Measure Types by Region"
         )
         st.altair_chart(chart_3_3, use_container_width=True)
+    with tab4:
+        st.header("High-Impact Investments & Future Vision")
+
+        # Chart 4.1: "Photovoltaic Potential" Map
+        st.markdown("### Potential Energy Savings (kWh) from Solar Installations")
+        
+        if spain_geojson:
+            # Filter for solar projects and group by region
+            solar_data = df_audit[df_audit['medida_mejora'] == 'Instalación Fotovoltaica']
+            solar_savings_by_region = solar_data.groupby('comunidad_autonoma')['ahorro_energetico_kwh'].sum().reset_index()
+
+            # Create a list of all regions to ensure all are on the map
+            all_regions = df_audit['comunidad_autonoma'].unique().tolist()
+            full_solar_data = pd.DataFrame({'comunidad_autonoma': all_regions})
+            full_solar_data = pd.merge(full_solar_data, solar_savings_by_region, on='comunidad_autonoma', how='left').fillna(0)
+
+            # Create the Altair choropleth map
+            chart_4_1 = alt.Chart(alt.Data(url=geojson_url, format=alt.DataFormat(property='features', type='json'))).mark_geoshape().encode(
+                color=alt.Color(
+                    'ahorro_energetico_kwh:Q', 
+                    scale=alt.Scale(scheme='blues', domain=(0, full_solar_data['ahorro_energetico_kwh'].max())),
+                    title="Energy Savings (kWh)"
+                ),
+                tooltip=[
+                    alt.Tooltip('properties.name', title='Comunidad Autónoma'),
+                    alt.Tooltip('ahorro_energetico_kwh:Q', title='Potential Savings', format=',.0f')
+                ]
+            ).transform_lookup(
+                lookup='properties.name',
+                from_=alt.LookupData(full_solar_data, 'comunidad_autonoma', ['ahorro_energetico_kwh'])
+            ).project(
+                type="mercator"
+            ).properties(
+                title="Potential Energy Savings (kWh) from Solar Installations"
+            )
+            st.altair_chart(chart_4_1, use_container_width=True)
+        else:
+            st.warning("Map data could not be loaded.")
+
+        st.markdown("---")
+
+        # Chart 4.2: "Total Cost of Ownership" Analysis
+        st.markdown("### Long-Term Financial Impact Analysis")
+        
+        # Create a dropdown menu
+        high_cost_measures = [
+            "Sustitución luminarias a LED", 
+            "Instalación Fotovoltaica",
+            "Instalación cortina de aire en puerta de entrada",
+            "Sistema de Gestión Energética"
+        ]
+        
+        selected_measure = st.selectbox(
+            "Select a high-cost measure:",
+            options=high_cost_measures
+        )
+
+        # Filter the data for the selected measure
+        measure_data = df_audit[df_audit['medida_mejora'] == selected_measure]
+        
+        if not measure_data.empty:
+            total_investment = measure_data['inversion_eur'].sum()
+            total_annual_savings = measure_data['ahorro_economico_eur'].sum()
+            
+            # Create the waterfall chart data
+            waterfall_data = pd.DataFrame({
+                'category': ['Investment'] + [f'Year {i+1}' for i in range(10)] + ['Total'],
+                'amount': [-total_investment] + [total_annual_savings] * 10 + [total_annual_savings * 10 - total_investment]
+            })
+            
+            # Create a color column for the chart
+            waterfall_data['color'] = ['#DC3545'] + ['#28A745'] * 10 + ['#007BFF']
+
+            # Create the Altair waterfall chart
+            chart_4_2 = alt.Chart(waterfall_data).mark_bar().encode(
+                x=alt.X('category', sort=None, axis=alt.Axis(title='Year')),
+                y=alt.Y('amount', axis=alt.Axis(title='Cumulative Financial Impact (€)')),
+                color=alt.Color('color', scale=None),
+                tooltip=[
+                    alt.Tooltip('category', title='Category'),
+                    alt.Tooltip('amount', title='Amount', format='€,.0f')
+                ]
+            ).properties(
+                title=f"Long-Term Financial Impact for {selected_measure}"
+            )
+            st.altair_chart(chart_4_2, use_container_width=True)
+        else:
+            st.info("No data found for the selected measure.")
+        
+        st.markdown("---")
+
+        # Chart 4.3: Strategic Investment Matrix
+        st.markdown("### Regional Savings vs. Investment Profile")
+        
+        # Calculate total investment and total savings by region
+        regional_summary = df_audit.groupby('comunidad_autonoma').agg(
+            total_investment=('inversion_eur', 'sum'),
+            total_savings=('ahorro_energetico_kwh', 'sum')
+        ).reset_index()
+
+        # Assuming a baseline to calculate percentage savings. If unavailable, use a proxy.
+        # This is a placeholder as the baseline data is not in the provided CSV.
+        # To replicate the report, we would need the original baseline consumption data.
+        # For now, let's just use the absolute savings on the x-axis.
+        
+        chart_4_3 = alt.Chart(regional_summary).mark_point(
+            size=100,
+            color='#007BFF'
+        ).encode(
+            x=alt.X('total_savings', axis=alt.Axis(title='Total Energy Savings (kWh)')),
+            y=alt.Y('total_investment', axis=alt.Axis(title='Total Required Investment (€)')),
+            tooltip=[
+                alt.Tooltip('comunidad_autonoma', title='Comunidad Autónoma'),
+                alt.Tooltip('total_savings', title='Total Savings', format=',.0f'),
+                alt.Tooltip('total_investment', title='Total Investment', format='€,.0f')
+            ]
+        )
+        
+        # Add text labels to the points
+        text = chart_4_3.mark_text(
+            align='left',
+            baseline='middle',
+            dx=7
+        ).encode(
+            text='comunidad_autonoma'
+        )
+
+        st.altair_chart(chart_4_3 + text, use_container_width=True)
 
 
     st.markdown("---")
