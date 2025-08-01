@@ -4,6 +4,27 @@ import altair as alt
 
 csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 
+Thank you for providing the traceback. It looks like the same `KeyError` is appearing in both instances, pointing to the line where the app tries to group data by the column `'comunidad_autonoma'`.
+
+This `KeyError` happens because the column `'comunidad_autonoma'` does not exist in the DataFrame `df_audit`.
+
+In the previous response, I mapped the original column names to the new, user-friendly names. However, the `df.rename()` function only renames the columns on the DataFrame. The rest of the code still needs to refer to the new, renamed columns. The traceback shows that the code is still trying to access the original column names.
+
+To fix this, we need to update the `load_data` function to return the DataFrame with the new column names and then use those new column names throughout the rest of the application code.
+
+### Step-by-step fix:
+
+1.  **Modify the `load_data` function** to correctly apply the column name mapping.
+2.  **Update the rest of the code** to refer to the new column names. For example, instead of `'Center'`, we'll use `'comunidad_autonoma'`, and instead of `'Money Saved'`, we'll use `'ahorro_economico_eur'`.
+
+Here is the corrected and complete `app.py` code. Please replace your entire `app.py` file with this code.
+
+```python
+import streamlit as st
+import pandas as pd
+import altair as alt
+
+csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 
 # Function to load and clean the data
 @st.cache_data
@@ -12,30 +33,22 @@ def load_data(url):
     Loads the CSV data from a URL and cleans the column names.
     """
     try:
-        # Read the CSV from the GitHub URL, with headers on the second row (index 1).
         df = pd.read_csv(url, header=1)
-        
-        # Drop the unnamed columns that appear in the raw data
         df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-        
-        # Clean up column names by stripping leading/trailing whitespace
         df.columns = [col.strip() for col in df.columns]
-        
-        # Fill the 'Center' column's NaN values by using the previous valid value
         df['Center'] = df['Center'].ffill()
-        
-        # Map the user's column names to the actual column names in the CSV
+
+        # Map the original column names to the new, user-friendly names
         col_map = {
-            'ahorro_economico_eur': 'Money Saved',
-            'inversion_eur': 'Investment',
-            'ahorro_energetico_kwh': 'Energy Saved',
-            'comunidad_autonoma': 'Center',
-            'medida_mejora': 'Measure',
-            'periodo_retorno_simple_anos': 'Pay back period',
-            'centro_asistencial': 'Center'
+            'Money Saved': 'ahorro_economico_eur',
+            'Investment': 'inversion_eur',
+            'Energy Saved': 'ahorro_energetico_kwh',
+            'Center': 'comunidad_autonoma',
+            'Measure': 'medida_mejora',
+            'Pay back period': 'periodo_retorno_simple_anos'
         }
         
-        df.rename(columns={v: k for k, v in col_map.items() if v in df.columns}, inplace=True)
+        df.rename(columns=col_map, inplace=True)
 
         # Clean and convert numeric columns
         numeric_cols = ['ahorro_energetico_kwh', 'ahorro_economico_eur', 'inversion_eur', 'periodo_retorno_simple_anos']
@@ -57,7 +70,6 @@ st.set_page_config(
 
 st.title("Energy Audit Summary for 2025")
 
-# Load the data
 df_audit = load_data(csv_url)
 
 if df_audit.empty:
@@ -95,9 +107,9 @@ else:
         
         st.markdown(
             f"""
-            <div style="background-color: #F8D7DA; padding: 20px; border-radius: 5px; text-align: center;">
-                <h5 style="color: #DC3545; font-size: 20px;">Daily Cost of Delay</h5>
-                <h1 style="color: #DC3545; font-size: 48px; margin-top: -10px;">€{daily_cost_of_delay:,.2f}</h1>
+            <div style="background-color: #ffdbdb; padding: 20px; border-radius: 5px; text-align: center;">
+                <h3 style="color: #000000; font-size: 20px;">Daily Cost of Delay</h3>
+                <h1 style="color: #000000; font-size: 48px; margin-top: -10px;">€{daily_cost_of_delay:,.2f}</h1>
                 <p style="color: #DC3545;">Economic savings lost each day by not implementing zero-cost measures.</p>
             </div>
             """,
@@ -108,7 +120,7 @@ else:
     
         # Chart 1.3: Regional Efficiency Scorecard
         st.markdown("### Regional Efficiency Scorecard")
-    
+
         regional_data = df_audit.groupby('comunidad_autonoma').agg(
             total_investment=('inversion_eur', 'sum'),
             total_savings=('ahorro_economico_eur', 'sum')
@@ -192,6 +204,8 @@ else:
                 title="Total Annual Energy Savings by Region"
             )
             st.altair_chart(chart_b, use_container_width=True)
+        
+        st.markdown("---")
 
     with tab2:
         st.header("Quick Wins & Immediate Actions")
@@ -220,7 +234,6 @@ else:
         # Chart 2.2: "Low-Hanging Fruit" Matrix
         st.markdown("### Low-Hanging Fruit Matrix")
 
-        # Create a base scatter plot
         base_chart = alt.Chart(df_audit).mark_point(
             color='#007BFF'
         ).encode(
@@ -228,7 +241,7 @@ else:
             y=alt.Y('ahorro_economico_eur', axis=alt.Axis(title='Annual Economic Savings (€)')),
             tooltip=[
                 alt.Tooltip('medida_mejora', title='Measure'),
-                alt.Tooltip('centro_asistencial', title='Center'),
+                alt.Tooltip('comunidad_autonoma', title='Center'),
                 alt.Tooltip('ahorro_economico_eur', title='Savings', format='€,.0f'),
                 alt.Tooltip('periodo_retorno_simple_anos', title='Payback', format='.1f')
             ]
@@ -236,37 +249,31 @@ else:
             title="Project Prioritization Matrix"
         )
         
-        # Add a vertical dashed line
         vline = alt.Chart(pd.DataFrame({'x': [1.5]})).mark_rule(
-            color='#6C757D', strokeDash=[3, 3]
+            color='#6C757D', strokeDash=[4, 4]
         ).encode(
             x='x'
         )
         
-        # Add a horizontal dashed line
         hline = alt.Chart(pd.DataFrame({'y': [1000]})).mark_rule(
-            color='#6C757D', strokeDash=[3, 3]
+            color='#6C757D', strokeDash=[4, 4]
         ).encode(
             y='y'
         )
         
-        # Combine the chart with the lines
         combined_chart = base_chart + vline + hline
-
-        # Add the text label
-        text = alt.Chart(pd.DataFrame({'x': [2], 'y': [500], 'text': ['High Priority Projects']})).mark_text(
-            align='right', baseline='bottom', dx=-5, dy=-5, color='#6C757D'
-        ).encode(
-            x='x',
-            y='y',
-            text='text'
-        )
         
-        # Final combined chart with text (Altair doesn't support text placement natively on top of other elements)
-        # We will manually add text on the app
-        st.markdown('<p style="text-align: right; color: #6C757D;">High Priority Projects</p>', unsafe_allow_html=True)
         st.altair_chart(combined_chart, use_container_width=True)
-        
+
+        st.markdown(
+            f"""
+            <div style="text-align: right; color: #6C757D; margin-top: -20px;">
+                High Priority Projects
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
         st.markdown("---")
         
         # Chart 2.3: First-Year Return on Investment
@@ -277,13 +284,9 @@ else:
             total_savings=('ahorro_economico_eur', 'sum')
         ).reset_index()
         
-        # Calculate remaining investment
         roi_data['remaining_investment'] = roi_data['total_investment'] - roi_data['total_savings']
-        
-        # Handle cases where savings exceed investment
         roi_data['remaining_investment'] = roi_data['remaining_investment'].apply(lambda x: max(x, 0))
 
-        # Melt the DataFrame for stacked bar chart
         roi_melted = roi_data.melt(
             id_vars='comunidad_autonoma', 
             value_vars=['total_savings', 'remaining_investment'],
@@ -308,14 +311,18 @@ else:
             title="First-Year Economic Return by Region"
         )
         st.altair_chart(chart_2_3, use_container_width=True)
+        
+    st.markdown("---")
+    st.subheader("Raw Data from the 2025 Energy Audit")
+    st.dataframe(df_audit, use_container_width=True)
 
 
-
-# --- Future Development Ideas ---
-st.markdown("---")
-st.markdown("### Future Functionality")
-st.markdown("""
+    # --- Future Development Ideas ---
+    st.markdown("---")
+    st.markdown("### Future Functionality")
+    st.markdown("""
 - **Comparison Tab**: A new tab or page to compare data from different years. This can be implemented by adding more Excel files for different years and creating new functions to load and compare them.
 - **Interactive Charts**: Add visualizations like bar charts to compare `Energy Saved` or `Money Saved` by `Center` or `Measure`.
 - **Filtering Options**: Allow users to filter the data by `Center` or `Measure` using Streamlit widgets like `st.selectbox`.
 """)
+```
