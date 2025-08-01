@@ -35,10 +35,20 @@ def load_data(url):
                 df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         
+        # Add a category column for measure types
+        df['categoria_medida'] = df['medida_mejora'].apply(lambda x: 
+            'Medidas de Control de la iluminación' if 'luminarias' in str(x).lower() or 'iluminación' in str(x).lower() else
+            'Medidas de gestión energética' if 'gestión energética' in str(x).lower() or 'fotovoltaica' in str(x).lower() or 'potencia' in str(x).lower() else
+            'Medidas de control térmico' if 'temperatura' in str(x).lower() or 'gasóleo' in str(x).lower() or 'calor' in str(x).lower() or 'cortina de aire' in str(x).lower() else
+            'Otros'
+        )
+        
         return df
     except Exception as e:
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()
+
+
 
 # Set up the Streamlit app layout
 st.set_page_config(
