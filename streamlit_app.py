@@ -51,21 +51,7 @@ def load_data(url):
         return df
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return pd.DataFrame()
-
-@st.cache_data
-def load_geojson(url):
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an HTTPError if the HTTP request returned an unsuccessful status code
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error loading GeoJSON file from URL: {e}")
-        return None
-    except Exception as e:
-        st.error(f"Error parsing GeoJSON: {e}")
-        return None
-        
+        return pd.DataFrame()        
 
 # Set up the Streamlit app layout
 st.set_page_config(
@@ -445,38 +431,33 @@ else:
         # Chart 4.1: "Photovoltaic Potential" Map
         st.markdown("### Potential Energy Savings (kWh) from Solar Installations")
         
-        if spain_geojson:
-            # Filter for solar projects and group by region
-            solar_data = df_audit[df_audit['medida_mejora'] == 'Instalación Fotovoltaica']
-            solar_savings_by_region = solar_data.groupby('comunidad_autonoma')['ahorro_energetico_kwh'].sum().reset_index()
+        # Load the GeoJSON data
+        source = alt.topo_feature('world', 'countries')
 
-            # Create a list of all regions to ensure all are on the map
-            all_regions = df_audit['comunidad_autonoma'].unique().tolist()
-            full_solar_data = pd.DataFrame({'comunidad_autonoma': all_regions})
-            full_solar_data = pd.merge(full_solar_data, solar_savings_by_region, on='comunidad_autonoma', how='left').fillna(0)
+        # Filter for solar projects and group by region
+        solar_data = df_audit[df_audit['medida_mejora'] == 'Instalación Fotovoltaica']
+        solar_savings_by_region = solar_data.groupby('comunidad_autonoma')['ahorro_energetico_kwh'].sum().reset_index()
 
-            # Create the Altair choropleth map
-            chart_4_1 = alt.Chart(alt.Data(url=geojson_url, format=alt.DataFormat(property='features', type='json'))).mark_geoshape().encode(
-                color=alt.Color(
-                    'ahorro_energetico_kwh:Q', 
-                    scale=alt.Scale(scheme='blues', domain=(0, full_solar_data['ahorro_energetico_kwh'].max())),
-                    title="Energy Savings (kWh)"
-                ),
-                tooltip=[
-                    alt.Tooltip('properties.name', title='Comunidad Autónoma'),
-                    alt.Tooltip('ahorro_energetico_kwh:Q', title='Potential Savings', format=',.0f')
-                ]
-            ).transform_lookup(
-                lookup='properties.name',
-                from_=alt.LookupData(full_solar_data, 'comunidad_autonoma', ['ahorro_energetico_kwh'])
-            ).project(
-                type="mercator"
-            ).properties(
-                title="Potential Energy Savings (kWh) from Solar Installations"
-            )
-            st.altair_chart(chart_4_1, use_container_width=True)
-        else:
-            st.warning("Map data could not be loaded.")
+        # Merge the GeoJSON with your data
+        chart_4_1 = alt.Chart(source).mark_geoshape().encode(
+            color=alt.Color(
+                'ahorro_energetico_kwh:Q',
+                scale=alt.Scale(scheme='blues'),
+                legend=alt.Legend(title="Energy Savings (kWh)")
+            ),
+            tooltip=[
+                alt.Tooltip('properties.name', title='Comunidad Autónoma'),
+                alt.Tooltip('ahorro_energetico_kwh:Q', title='Potential Savings', format=',.0f')
+            ]
+        ).transform_lookup(
+            lookup='properties.name',
+            from_=alt.LookupData(solar_savings_by_region, 'comunidad_autonoma', ['ahorro_energetico_kwh'])
+        ).project(
+            type="mercator"
+        ).properties(
+            title="Potential Energy Savings (kWh) from Solar Installations"
+        )
+        st.altair_chart(chart_4_1, use_container_width=True)
 
         st.markdown("---")
 
@@ -538,11 +519,6 @@ else:
             total_investment=('inversion_eur', 'sum'),
             total_savings=('ahorro_energetico_kwh', 'sum')
         ).reset_index()
-
-        # Assuming a baseline to calculate percentage savings. If unavailable, use a proxy.
-        # This is a placeholder as the baseline data is not in the provided CSV.
-        # To replicate the report, we would need the original baseline consumption data.
-        # For now, let's just use the absolute savings on the x-axis.
         
         chart_4_3 = alt.Chart(regional_summary).mark_point(
             size=100,
@@ -567,6 +543,7 @@ else:
         )
 
         st.altair_chart(chart_4_3 + text, use_container_width=True)
+
 
 
     st.markdown("---")
