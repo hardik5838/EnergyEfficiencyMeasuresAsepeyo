@@ -54,7 +54,13 @@ if df_audit.empty:
     st.warning("Could not load the energy audit data. Please check the GitHub URL and file path.")
 else:
     # --- Tabbed interface ---
-    tab1, tab2 = st.tabs(["Executive Summary & Command Center", "Quick Wins & Immediate Actions"])
+    tab1, tab2, tab3 = st.tabs([
+        "Executive Summary & Command Center", 
+        "Quick Wins & Immediate Actions", 
+        "Strategic Rollouts & Scalable Projects"
+    ])
+
+
 
     with tab1:
         st.header("National Impact KPIs")
@@ -289,7 +295,112 @@ else:
             title="First-Year Economic Return by Region"
         )
         st.altair_chart(chart_2_3, use_container_width=True)
+
+ with tab3:
+        st.header("Strategic Rollouts & Scalable Projects")
+
+        # Chart 3.1: "Ubiquity & Urgency" Treemap (using a stacked bar chart as an alternative)
+        st.markdown("### Most Common Measures by Frequency and Urgency")
+        st.markdown("*(Alternative to Treemap: Stacked Bar Chart)*")
+
+        # Get data for the chart
+        treemap_data = df_audit.groupby('medida_mejora').agg(
+            num_centers=('comunidad_autonoma', 'count'),
+            avg_payback=('periodo_retorno_simple_anos', 'mean')
+        ).reset_index().sort_values('num_centers', ascending=False)
         
+        # Define color scale for urgency (payback period)
+        treemap_data['payback_urgency'] = pd.cut(
+            treemap_data['avg_payback'],
+            bins=[-1, 2, 4, treemap_data['avg_payback'].max() + 1],
+            labels=['< 2 years', '2-4 years', '> 4 years']
+        )
+        
+        chart_3_1 = alt.Chart(treemap_data).mark_bar(
+            size=30
+        ).encode(
+            x=alt.X('num_centers', axis=alt.Axis(title='Number of Centers')),
+            y=alt.Y('medida_mejora', sort='-x', axis=alt.Axis(title='Measure')),
+            color=alt.Color(
+                'payback_urgency',
+                scale=alt.Scale(domain=['< 2 years', '2-4 years', '> 4 years'], range=['#28A745', '#FFC107', '#DC3545']),
+                legend=alt.Legend(title="Average Payback")
+            ),
+            tooltip=[
+                alt.Tooltip('medida_mejora', title='Measure'),
+                alt.Tooltip('num_centers', title='Found in', format='.0f'),
+                alt.Tooltip('avg_payback', title='Avg Payback', format='.1f')
+            ]
+        ).properties(
+            title="Most Common Measures by Frequency and Urgency"
+        )
+        st.altair_chart(chart_3_1, use_container_width=True)
+
+        st.markdown("---")
+        
+        # Chart 3.2: Investment Profile by Measure
+        st.markdown("### Investment Breakdown for Top 5 Most Frequent Measures")
+        
+        # Get the top 5 most frequent measures
+        top_5_measures = treemap_data['medida_mejora'].head(5).tolist()
+        
+        # Filter the original DataFrame for only these measures
+        top_5_data = df_audit[df_audit['medida_mejora'].isin(top_5_measures)].copy()
+        
+        # Define payback period categories
+        top_5_data['payback_category'] = pd.cut(
+            top_5_data['periodo_retorno_simple_anos'],
+            bins=[-1, 1, 3, top_5_data['periodo_retorno_simple_anos'].max() + 1],
+            labels=['< 1 year', '1-3 years', '> 3 years']
+        )
+
+        # Create stacked bar chart
+        chart_3_2 = alt.Chart(top_5_data).mark_bar().encode(
+            x=alt.X('medida_mejora', axis=alt.Axis(title='Measure')),
+            y=alt.Y('sum(inversion_eur)', axis=alt.Axis(title='Total Investment (€)')),
+            color=alt.Color(
+                'payback_category',
+                scale=alt.Scale(domain=['< 1 year', '1-3 years', '> 3 years'], range=['#28A745', '#FFC107', '#DC3545']),
+                legend=alt.Legend(title="Payback Period")
+            ),
+            tooltip=[
+                alt.Tooltip('medida_mejora', title='Measure'),
+                alt.Tooltip('payback_category', title='Payback Category'),
+                alt.Tooltip('sum(inversion_eur)', title='Investment', format='€,.0f')
+            ]
+        ).properties(
+            title="Investment Breakdown for Top 5 Most Frequent Measures"
+        )
+        st.altair_chart(chart_3_2, use_container_width=True)
+        
+        st.markdown("---")
+
+        # Chart 3.3: Regional Needs Profile
+        st.markdown("### Proportion of Measure Types by Region")
+
+        # Create stacked column chart
+        chart_3_3 = alt.Chart(df_audit).mark_bar().encode(
+            x=alt.X('comunidad_autonoma', axis=alt.Axis(title='Comunidad Autónoma')),
+            y=alt.Y('count()', stack="normalize", axis=alt.Axis(title='Proportion of Measures', format='%')),
+            color=alt.Color(
+                'categoria_medida',
+                scale=alt.Scale(
+                    domain=['Medidas de gestión energética', 'Medidas de Control de la iluminación', 'Medidas de control térmico'],
+                    range=['#007BFF', '#FFC107', '#6C757D']
+                ),
+                legend=alt.Legend(title="Measure Type")
+            ),
+            tooltip=[
+                alt.Tooltip('comunidad_autonoma', title='Comunidad Autónoma'),
+                alt.Tooltip('categoria_medida', title='Measure Type'),
+                alt.Tooltip('count()', title='Number of Measures')
+            ]
+        ).properties(
+            title="Proportion of Measure Types by Region"
+        )
+        st.altair_chart(chart_3_3, use_container_width=True)
+        
+    
     st.markdown("---")
     st.subheader("Raw Data from the 2025 Energy Audit")
     st.dataframe(df_audit, use_container_width=True)
