@@ -207,11 +207,37 @@ else:
             title="Total Annual Energy Savings by Region"
         )
         st.altair_chart(chart_b, use_container_width=True)
+     st.markdown("---")
 
+
+
+with tab2:
+        st.header("Quick Wins & Immediate Actions")
+        
+        # Chart 2.1: "Zero-Cost Victories" Impact Chart
+        st.markdown("### Zero-Cost Victories Impact Chart")
+        
+        zero_cost_data = df_audit[df_audit['inversion_eur'] == 0]
+        zero_cost_summary = zero_cost_data.groupby('medida_mejora')['ahorro_economico_eur'].sum().reset_index()
+        zero_cost_summary = zero_cost_summary.sort_values('ahorro_economico_eur', ascending=False)
+        
+        chart_2_1 = alt.Chart(zero_cost_summary).mark_bar(color='#28A745').encode(
+            x=alt.X('ahorro_economico_eur', axis=alt.Axis(title='Annual Savings (€)')),
+            y=alt.Y('medida_mejora', sort='-x', axis=alt.Axis(title='Measure')),
+            tooltip=[
+                alt.Tooltip('medida_mejora', title='Measure'),
+                alt.Tooltip('ahorro_economico_eur', title='Annual Savings', format='€,.0f')
+            ]
+        ).properties(
+            title="Annual Savings from Zero-Investment Measures"
+        )
+        st.altair_chart(chart_2_1, use_container_width=True)
+        
+        st.markdown("---")
+        
         # Chart 2.2: "Low-Hanging Fruit" Matrix
         st.markdown("### Low-Hanging Fruit Matrix")
 
-        # Create the base scatter plot
         base_chart = alt.Chart(df_audit).mark_point(
             color='#007BFF'
         ).encode(
@@ -227,27 +253,22 @@ else:
             title="Project Prioritization Matrix"
         )
         
-        # Add a vertical dashed line
         vline = alt.Chart(pd.DataFrame({'x': [1.5]})).mark_rule(
             color='#6C757D', strokeDash=[4, 4]
         ).encode(
             x='x'
         )
         
-        # Add a horizontal dashed line
         hline = alt.Chart(pd.DataFrame({'y': [1000]})).mark_rule(
             color='#6C757D', strokeDash=[4, 4]
         ).encode(
             y='y'
         )
         
-        # Layer the scatter plot and the dashed lines
         combined_chart = base_chart + vline + hline
         
-        # Display the chart
         st.altair_chart(combined_chart, use_container_width=True)
 
-        # Add the text label separately using markdown for robustness
         st.markdown(
             f"""
             <div style="text-align: right; color: #6C757D; margin-top: -20px;">
@@ -267,13 +288,9 @@ else:
             total_savings=('ahorro_economico_eur', 'sum')
         ).reset_index()
         
-        # Calculate remaining investment
         roi_data['remaining_investment'] = roi_data['total_investment'] - roi_data['total_savings']
-        
-        # Handle cases where savings exceed investment
         roi_data['remaining_investment'] = roi_data['remaining_investment'].apply(lambda x: max(x, 0))
 
-        # Melt the DataFrame for stacked bar chart
         roi_melted = roi_data.melt(
             id_vars='comunidad_autonoma', 
             value_vars=['total_savings', 'remaining_investment'],
@@ -298,6 +315,7 @@ else:
             title="First-Year Economic Return by Region"
         )
         st.altair_chart(chart_2_3, use_container_width=True)
+
 
 
 # --- Future Development Ideas ---
