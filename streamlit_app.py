@@ -2,8 +2,10 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import requests
+import json
 
 csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
+geojson_url = "https://raw.githubusercontent.com/codeforamerica/click-that-hood/master/geojson/spain-autonomous-communities.geojson"
 
 # Function to load and clean the data
 @st.cache_data
