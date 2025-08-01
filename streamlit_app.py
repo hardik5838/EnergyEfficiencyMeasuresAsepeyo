@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import requests
 
 csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 
@@ -51,14 +52,16 @@ def load_data(url):
 @st.cache_data
 def load_geojson(url):
     try:
-        with open('spain-autonomous-communities.geojson') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        st.error("GeoJSON file not found. Please ensure 'spain-autonomous-communities.geojson' is in your project directory.")
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an HTTPError if the HTTP request returned an unsuccessful status code
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error loading GeoJSON file from URL: {e}")
         return None
     except Exception as e:
-        st.error(f"Error loading GeoJSON file: {e}")
+        st.error(f"Error parsing GeoJSON: {e}")
         return None
+        
 
 # Set up the Streamlit app layout
 st.set_page_config(
