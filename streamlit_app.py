@@ -207,7 +207,7 @@ else:
             title="Total Annual Energy Savings by Region"
         )
         st.altair_chart(chart_b, use_container_width=True)
-     st.markdown("---")
+        st.markdown("---")
 
 
 
