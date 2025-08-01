@@ -35,7 +35,7 @@ def load_data(url):
                 df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         
-        # Add a category column for measure types
+        # Add a category column for measure types. Make sure to handle potential NaN values in 'medida_mejora'
         df['categoria_medida'] = df['medida_mejora'].apply(lambda x: 
             'Medidas de Control de la iluminación' if 'luminarias' in str(x).lower() or 'iluminación' in str(x).lower() else
             'Medidas de gestión energética' if 'gestión energética' in str(x).lower() or 'fotovoltaica' in str(x).lower() or 'potencia' in str(x).lower() else
@@ -47,7 +47,6 @@ def load_data(url):
     except Exception as e:
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()
-
 
 
 # Set up the Streamlit app layout
