@@ -2,20 +2,16 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 
-# This is the URL to the raw CSV file on GitHub.
-# You will need to replace 'YOUR_USERNAME', 'YOUR_REPO_NAME', and 'YOUR_BRANCH'
-# with your actual GitHub details.
 csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 
 # Function to load and clean the data
+@st.cache_data
 def load_data(url):
     """
     Loads the CSV data from a URL and cleans the column names.
     """
     try:
-        # Read the CSV from the GitHub URL. The 'header=1' parameter is used
-        # because the first row seems to be an empty row, with the headers
-        # starting from the second row (index 1).
+        # Read the CSV from the GitHub URL, with headers on the second row (index 1).
         df = pd.read_csv(url, header=1)
         
         # Drop the unnamed columns that appear in the raw data
@@ -24,14 +20,21 @@ def load_data(url):
         # Clean up column names by stripping leading/trailing whitespace
         df.columns = [col.strip() for col in df.columns]
         
-        # Fill the 'Center' and 'Measure' columns' NaN values by using the previous valid value
+        # Fill the 'Center' column's NaN values by using the previous valid value
         df['Center'] = df['Center'].ffill()
-        df['Measure'] = df['Measure'].ffill()
+
+        # --- FIX: Clean and convert columns to numeric type ---
+        numeric_cols = ['Energy Saved', 'Money Saved', 'Investment', 'Pay back period']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+                df[col] = pd.to_numeric(df[col], errors='coerce')
         
         return df
     except Exception as e:
         st.error(f"Error loading data: {e}")
         return pd.DataFrame() # Return an empty DataFrame on error
+
 
 # Set up the Streamlit app layout
 st.set_page_config(
