@@ -375,8 +375,21 @@ else:
         
         st.markdown("---")
 
-        # Chart 3.3: Regional Needs Profile
+# Chart 3.3: Regional Needs Profile
         st.markdown("### Proportion of Measure Types by Region")
+
+        # Define a color mapping for the known categories
+        color_map = {
+            'Medidas de gestión energética': '#007BFF',  # Blue
+            'Medidas de Control de la iluminación': '#FFC107',  # Yellow
+            'Medidas de control térmico': '#6C757D',      # Grey
+            'Otros': '#CED4DA'                           # Neutral for unknown categories
+        }
+
+        # Get all unique categories from the data and their corresponding colors
+        unique_categories = df_audit['categoria_medida'].unique().tolist()
+        domain = [cat for cat in unique_categories if cat in color_map]
+        range_colors = [color_map[cat] for cat in domain]
 
         # Create stacked column chart
         chart_3_3 = alt.Chart(df_audit).mark_bar().encode(
@@ -384,10 +397,7 @@ else:
             y=alt.Y('count()', stack="normalize", axis=alt.Axis(title='Proportion of Measures', format='%')),
             color=alt.Color(
                 'categoria_medida',
-                scale=alt.Scale(
-                    domain=['Medidas de gestión energética', 'Medidas de Control de la iluminación', 'Medidas de control térmico'],
-                    range=['#007BFF', '#FFC107', '#6C757D']
-                ),
+                scale=alt.Scale(domain=domain, range=range_colors),
                 legend=alt.Legend(title="Measure Type")
             ),
             tooltip=[
@@ -399,8 +409,8 @@ else:
             title="Proportion of Measure Types by Region"
         )
         st.altair_chart(chart_3_3, use_container_width=True)
-        
-    
+
+
     st.markdown("---")
     st.subheader("Raw Data from the 2025 Energy Audit")
     st.dataframe(df_audit, use_container_width=True)
