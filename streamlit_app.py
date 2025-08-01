@@ -296,7 +296,7 @@ else:
         )
         st.altair_chart(chart_2_3, use_container_width=True)
 
- with tab3:
+    with tab3:
         st.header("Strategic Rollouts & Scalable Projects")
 
         # Chart 3.1: "Ubiquity & Urgency" Treemap (using a stacked bar chart as an alternative)
