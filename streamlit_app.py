@@ -48,6 +48,17 @@ def load_data(url):
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()
 
+@st.cache_data
+def load_geojson(url):
+    try:
+        with open('spain-autonomous-communities.geojson') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        st.error("GeoJSON file not found. Please ensure 'spain-autonomous-communities.geojson' is in your project directory.")
+        return None
+    except Exception as e:
+        st.error(f"Error loading GeoJSON file: {e}")
+        return None
 
 # Set up the Streamlit app layout
 st.set_page_config(
@@ -58,6 +69,8 @@ st.set_page_config(
 st.title("Energy Audit Summary for 2025")
 
 df_audit = load_data(csv_url)
+spain_geojson = load_geojson(geojson_url)
+
 
 if df_audit.empty:
     st.warning("Could not load the energy audit data. Please check the GitHub URL and file path.")
