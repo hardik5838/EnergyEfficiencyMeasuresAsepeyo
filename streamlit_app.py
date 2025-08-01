@@ -4,6 +4,7 @@ import altair as alt
 
 csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 
+
 # Function to load and clean the data
 @st.cache_data
 def load_data(url):
@@ -22,9 +23,22 @@ def load_data(url):
         
         # Fill the 'Center' column's NaN values by using the previous valid value
         df['Center'] = df['Center'].ffill()
+        
+        # Map the user's column names to the actual column names in the CSV
+        col_map = {
+            'ahorro_economico_eur': 'Money Saved',
+            'inversion_eur': 'Investment',
+            'ahorro_energetico_kwh': 'Energy Saved',
+            'comunidad_autonoma': 'Center',
+            'medida_mejora': 'Measure',
+            'periodo_retorno_simple_anos': 'Pay back period',
+            'centro_asistencial': 'Center'
+        }
+        
+        df.rename(columns={v: k for k, v in col_map.items() if v in df.columns}, inplace=True)
 
-        # --- FIX: Clean and convert columns to numeric type ---
-        numeric_cols = ['Energy Saved', 'Money Saved', 'Investment', 'Pay back period']
+        # Clean and convert numeric columns
+        numeric_cols = ['ahorro_energetico_kwh', 'ahorro_economico_eur', 'inversion_eur', 'periodo_retorno_simple_anos']
         for col in numeric_cols:
             if col in df.columns:
                 df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
@@ -33,8 +47,7 @@ def load_data(url):
         return df
     except Exception as e:
         st.error(f"Error loading data: {e}")
-        return pd.DataFrame() # Return an empty DataFrame on error
-
+        return pd.DataFrame()
 
 # Set up the Streamlit app layout
 st.set_page_config(
@@ -295,6 +308,7 @@ else:
             title="First-Year Economic Return by Region"
         )
         st.altair_chart(chart_2_3, use_container_width=True)
+
 
 
 # --- Future Development Ideas ---
