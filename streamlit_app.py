@@ -3,6 +3,7 @@ import pandas as pd
 import altair as alt
 import requests
 import json
+import altair_data_server
 
 # GitHub raw URL for the GeoJSON file
 geojson_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/georef-spain-comunidad-autonoma.geojson"
@@ -39,6 +40,7 @@ def load_data(url):
         numeric_cols = ['ahorro_energetico_kwh', 'ahorro_economico_eur', 'inversion_eur', 'periodo_retorno_simple_anos']
         for col in numeric_cols:
             if col in df.columns:
+                # Replace comma with dot for decimal separation and ensure non-numeric values become NaN
                 df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         
@@ -90,13 +92,22 @@ else:
         "High-Impact Investments & Future Vision"
     ])
 
+    # Pre-calculate regional data to avoid redundant calculations
+    regional_data = df_audit.groupby('comunidad_autonoma').agg(
+        total_investment=('inversion_eur', 'sum'),
+        total_savings_eur=('ahorro_economico_eur', 'sum'),
+        total_savings_kwh=('ahorro_energetico_kwh', 'sum')
+    ).reset_index()
 
+    # Calculate average payback after grouping
+    regional_data['avg_payback'] = regional_data['total_investment'] / regional_data['total_savings_eur']
+    
     with tab1:
         st.header("National Impact KPIs")
         
         # Chart 1.1: National Impact KPIs
-        total_savings = df_audit['ahorro_economico_eur'].sum()
-        total_investment = df_audit['inversion_eur'].sum()
+        total_savings = regional_data['total_savings_eur'].sum()
+        total_investment = regional_data['total_investment'].sum()
         
         if total_savings > 0:
             avg_payback = total_investment / total_savings
@@ -134,18 +145,11 @@ else:
         # Chart 1.3: Regional Efficiency Scorecard
         st.markdown("### Regional Efficiency Scorecard")
 
-        regional_data = df_audit.groupby('comunidad_autonoma').agg(
-            total_investment=('inversion_eur', 'sum'),
-            total_savings=('ahorro_economico_eur', 'sum')
-        ).reset_index()
-        
-        regional_data['avg_payback'] = regional_data['total_investment'] / regional_data['total_savings']
-        
-        regional_data = regional_data.sort_values('avg_payback').reset_index(drop=True)
+        regional_data_sorted = regional_data.sort_values('avg_payback').reset_index(drop=True)
         
         def color_payback_cells(val):
             color = ''
-            if val < 2.0:
+            if pd.isna(val) or val < 2.0:
                 color = '#D4EDDA'
             elif 2.0 <= val < 4.0:
                 color = '#FFF3CD'
@@ -153,22 +157,22 @@ else:
                 color = '#F8D7DA'
             return f'background-color: {color}'
             
-        styled_df = regional_data.style.applymap(
+        styled_df = regional_data_sorted.style.applymap(
             color_payback_cells, subset=['avg_payback']
         ).set_properties(
             **{'background-color': '#F8F9FA'}, 
-            subset=pd.IndexSlice[regional_data.index, :]
+            subset=pd.IndexSlice[regional_data_sorted.index, :]
         ).format(
-            {'total_investment': "€{:,.0f}", 'total_savings': "€{:,.0f}", 'avg_payback': "{:.1f}"}
+            {'total_investment': "€{:,.0f}", 'total_savings_eur': "€{:,.0f}", 'avg_payback': "{:.1f}"}
         ).hide(axis="index")
     
         st.dataframe(
             styled_df,
-            column_order=('comunidad_autonoma', 'total_investment', 'total_savings', 'avg_payback'),
+            column_order=('comunidad_autonoma', 'total_investment', 'total_savings_eur', 'avg_payback'),
             column_config={
                 'comunidad_autonoma': st.column_config.TextColumn("Comunidad Autónoma", help="Region Name"),
                 'total_investment': st.column_config.NumberColumn("Total Investment (€)", help="Total Investment in Euros"),
-                'total_savings': st.column_config.NumberColumn("Annual Savings (€)", help="Total Annual Savings in Euros"),
+                'total_savings_eur': st.column_config.NumberColumn("Annual Savings (€)", help="Total Annual Savings in Euros"),
                 'avg_payback': st.column_config.NumberColumn("Average Payback (Years)", help="Average Payback Period in Years")
             },
             use_container_width=True
@@ -183,8 +187,8 @@ else:
     
         # Refactor Chart 1.4.1 Economic & Energy Savings by Region (Economic)
         with chart_col1:
-            economic_chart_data = regional_data[['comunidad_autonoma', 'total_savings']].rename(
-                columns={'comunidad_autonoma': 'Comunidad', 'total_savings': 'Total Savings'}
+            economic_chart_data = regional_data[['comunidad_autonoma', 'total_savings_eur']].rename(
+                columns={'comunidad_autonoma': 'Comunidad', 'total_savings_eur': 'Total Savings'}
             )
             chart_a = alt.Chart(economic_chart_data).mark_bar(
                 color='#007BFF'
@@ -202,9 +206,8 @@ else:
     
         # Refactor Chart 1.4.2 Economic & Energy Savings by Region (Energy)
         with chart_col2:
-            energy_data = df_audit.groupby('comunidad_autonoma')['ahorro_energetico_kwh'].sum().reset_index()
-            energy_chart_data = energy_data.rename(
-                columns={'comunidad_autonoma': 'Comunidad', 'ahorro_energetico_kwh': 'Total Savings'}
+            energy_chart_data = regional_data[['comunidad_autonoma', 'total_savings_kwh']].rename(
+                columns={'comunidad_autonoma': 'Comunidad', 'total_savings_kwh': 'Total Savings'}
             )
             chart_b = alt.Chart(energy_chart_data).mark_bar(
                 color='#007BFF'
@@ -294,17 +297,14 @@ else:
         # Chart 2.3: First-Year Return on Investment
         st.markdown("### First-Year Return on Investment")
         
-        roi_data = df_audit.groupby('comunidad_autonoma').agg(
-            total_investment=('inversion_eur', 'sum'),
-            total_savings=('ahorro_economico_eur', 'sum')
-        ).reset_index()
+        roi_data = regional_data.copy()
         
-        roi_data['remaining_investment'] = roi_data['total_investment'] - roi_data['total_savings']
+        roi_data['remaining_investment'] = roi_data['total_investment'] - roi_data['total_savings_eur']
         roi_data['remaining_investment'] = roi_data['remaining_investment'].apply(lambda x: max(x, 0))
 
         roi_melted = roi_data.melt(
             id_vars='comunidad_autonoma', 
-            value_vars=['total_savings', 'remaining_investment'],
+            value_vars=['total_savings_eur', 'remaining_investment'],
             var_name='roi_type',
             value_name='value'
         )
@@ -314,8 +314,8 @@ else:
             y=alt.Y('value', stack="normalize", axis=alt.Axis(title='Proportion of Investment')),
             color=alt.Color(
                 'roi_type',
-                scale=alt.Scale(domain=['total_savings', 'remaining_investment'], range=['#28A745', '#CED4DA']),
-                legend=alt.Legend(title="Investment Breakdown", labelExpr="datum.label == 'total_savings' ? 'Annual Savings' : 'Remaining Investment'")
+                scale=alt.Scale(domain=['total_savings_eur', 'remaining_investment'], range=['#28A745', '#CED4DA']),
+                legend=alt.Legend(title="Investment Breakdown", labelExpr="datum.label == 'total_savings_eur' ? 'Annual Savings' : 'Remaining Investment'")
             ),
             tooltip=[
                 alt.Tooltip('comunidad_autonoma', title='Comunidad'),
@@ -462,10 +462,9 @@ else:
             full_solar_data = pd.merge(full_solar_data, solar_savings_by_region, on='comunidad_autonoma', how='left').fillna(0)
 
             # Manually map the names to match the GeoJSON properties
-            # The GeoJSON names are in Spanish, but without the accents
             name_mapping = {
-                'Aragón': 'Aragon',
-                'Comunidad Valenciana': 'Valencia',
+                'Aragón': 'Aragón',
+                'Comunidad Valenciana': 'Valenciana',
                 'Murcia': 'Murcia',
                 'País Vasco': 'País Vasco',
                 'Castilla-La Mancha': 'Castilla-La Mancha',
@@ -601,4 +600,3 @@ else:
 - **Interactive Charts**: Add visualizations like bar charts to compare `Energy Saved` or `Money Saved` by `Center` or `Measure`.
 - **Filtering Options**: Allow users to filter the data by `Center` or `Measure` using Streamlit widgets like `st.selectbox`.
 """)
-
