@@ -188,7 +188,7 @@ else:
                 color='#007BFF'
             ).encode(
                 x=alt.X('Comunidad', axis=alt.Axis(title='Comunidad Autónoma')),
-                y=alt.Y('Total Savings', axis=alt.Axis(title='Total Annual Economic Savings (€)')),
+                y=alt.Y('total_savings', axis=alt.Axis(title='Total Annual Economic Savings (€)')),
                 tooltip=[
                     alt.Tooltip('Comunidad', title='Comunidad'),
                     alt.Tooltip('Total Savings', title='Total Savings', format='€,.0f')
