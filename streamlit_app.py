@@ -4,10 +4,10 @@ import altair as alt
 import requests
 import json
 
-
-
+# GitHub raw URL for the GeoJSON file
 geojson_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/georef-spain-comunidad-autonoma.geojson"
-source = alt.topo_feature('https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/georef-spain-comunidad-autonoma.geojson', 'spain-autonomous-communities')
+
+# GitHub raw URL for the CSV data
 csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 
 
@@ -55,7 +55,6 @@ def load_data(url):
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()        
 
-
 @st.cache_data
 def load_geojson(url):
     try:
@@ -90,7 +89,6 @@ else:
         "Strategic Rollouts & Scalable Projects",
         "High-Impact Investments & Future Vision"
     ])
-
 
 
     with tab1:
@@ -140,7 +138,7 @@ else:
             total_investment=('inversion_eur', 'sum'),
             total_savings=('ahorro_economico_eur', 'sum')
         ).reset_index()
-    
+        
         regional_data['avg_payback'] = regional_data['total_investment'] / regional_data['total_savings']
         
         regional_data = regional_data.sort_values('avg_payback').reset_index(drop=True)
@@ -406,7 +404,7 @@ else:
         
         st.markdown("---")
 
-# Chart 3.3: Regional Needs Profile
+    # Chart 3.3: Regional Needs Profile
         st.markdown("### Proportion of Measure Types by Region")
 
         # Define a color mapping for the known categories
@@ -414,7 +412,7 @@ else:
             'Medidas de gestión energética': '#007BFF',  # Blue
             'Medidas de Control de la iluminación': '#FFC107',  # Yellow
             'Medidas de control térmico': '#6C757D',      # Grey
-            'Otros': '#CED4DA'                           # Neutral for unknown categories
+            'Otros': '#CED4DA'                          # Neutral for unknown categories
         }
 
         # Get all unique categories from the data and their corresponding colors
@@ -442,80 +440,101 @@ else:
         st.altair_chart(chart_3_3, use_container_width=True)
         
         
-with tab4:
-    st.header("High-Impact Investments & Future Vision")
-    
-    # Chart 4.1: "Photovoltaic Potential" Map
-    st.markdown("### Potential Energy Savings (kWh) from Solar Installations")
-    
-    # Load the GeoJSON data
-    geojson_data = load_geojson(geojson_url)
-
-    if geojson_data:
-        # Filter for solar projects and group by region
-        solar_data = df_audit[df_audit['medida_mejora'] == 'Instalación Fotovoltaica']
-        solar_savings_by_region = solar_data.groupby('comunidad_autonoma')['ahorro_energetico_kwh'].sum().reset_index()
-
-        # Create a list of all regions to ensure all are on the map
-        all_regions = df_audit['comunidad_autonoma'].unique().tolist()
-        full_solar_data = pd.DataFrame({'comunidad_autonoma': all_regions})
-        full_solar_data = pd.merge(full_solar_data, solar_savings_by_region, on='comunidad_autonoma', how='left').fillna(0)
-
-        # Manually map the names to match the GeoJSON properties
-        name_mapping = {
-            'Andalucía': 'Andalucia',
-            'Aragón': 'Aragon',
-            'Asturias': 'Asturias',
-            'Canarias': 'Canarias',
-            'Cantabria': 'Cantabria',
-            'Castilla y León': 'Castilla y Leon',
-            'Castilla-La Mancha': 'Castilla-La Mancha',
-            'Cataluña': 'Cataluña',
-            'Comunidad Valenciana': 'Comunidad Valenciana',
-            'Extremadura': 'Extremadura',
-            'Galicia': 'Galicia',
-            'Baleares': 'Baleares',
-            'La Rioja': 'La Rioja',
-            'Madrid': 'Madrid',
-            'Murcia': 'Murcia',
-            'Navarra': 'Navarra',
-            'País Vasco': 'País Vasco',
-            'Ceuta': 'Ceuta',
-            'Melilla': 'Melilla',
-        }
         
-        # Apply mapping and create the Altair chart
-        full_solar_data['comunidad_autonoma_geojson'] = full_solar_data['comunidad_autonoma'].map(name_mapping).fillna(full_solar_data['comunidad_autonoma'])
+    with tab4:
+        st.header("High-Impact Investments & Future Vision")
+        # Chart 4.1: "Photovoltaic Potential" Map
+        st.markdown("### Potential Energy Savings (kWh) from Solar Installations")
+        
+        # Load the GeoJSON data
+        source = load_geojson(geojson_url)
 
-        # Create the Altair choropleth map
-        chart_4_1 = alt.Chart(alt.Data(values=geojson_data['features'])).mark_geoshape(
-            stroke='black', 
-            strokeWidth=0.5
-        ).encode(
-            color=alt.Color(
-                'ahorro_energetico_kwh:Q', 
-                scale=alt.Scale(scheme='blues', domain=(0, full_solar_data['ahorro_energetico_kwh'].max())),
-                title="Energy Savings (kWh)"
-            ),
-            tooltip=[
-                alt.Tooltip('properties.name:N', title='Comunidad Autónoma'),
-                alt.Tooltip('ahorro_energetico_kwh:Q', title='Potential Savings', format=',.0f')
+        if source is not None:
+            # Filter for solar projects and group by region
+            solar_data = df_audit[df_audit['medida_mejora'] == 'Instalación Fotovoltaica']
+            solar_savings_by_region = solar_data.groupby('comunidad_autonoma')['ahorro_energetico_kwh'].sum().reset_index()
+
+            # Create a list of all regions to ensure all are on the map
+            all_regions = df_audit['comunidad_autonoma'].unique().tolist()
+            full_solar_data = pd.DataFrame({'comunidad_autonoma': all_regions})
+            full_solar_data = pd.merge(full_solar_data, solar_savings_by_region, on='comunidad_autonoma', how='left').fillna(0)
+
+            # Manually map the names to match the GeoJSON properties
+            # The GeoJSON names are in Spanish, but without the accents
+            name_mapping = {
+                'Aragón': 'Aragon',
+                'Comunidad Valenciana': 'Valencia',
+                'Murcia': 'Murcia',
+                'País Vasco': 'País Vasco',
+                'Castilla-La Mancha': 'Castilla-La Mancha',
+                'Extremadura': 'Extremadura',
+                'Andalucía': 'Andalucía',
+                'Canarias': 'Canary Is.',
+                'Ceuta': 'Ceuta',
+                'Cataluña': 'Cataluña',
+                'Castilla y León': 'Castilla y León',
+                'La Rioja': 'La Rioja'
+            }
+            full_solar_data['comunidad_autonoma_geojson'] = full_solar_data['comunidad_autonoma'].map(name_mapping).fillna(full_solar_data['comunidad_autonoma'])
+
+
+            # Create the Altair choropleth map
+            chart_4_1 = alt.Chart(source).mark_geoshape(
+                stroke='black', 
+                strokeWidth=0.5
+            ).encode(
+                color=alt.Color(
+                    'ahorro_energetico_kwh:Q', 
+                    scale=alt.Scale(scheme='blues', domain=(0, full_solar_data['ahorro_energetico_kwh'].max())),
+                    title="Energy Savings (kWh)"
+                ),
+                tooltip=[
+                    alt.Tooltip('properties.name', title='Comunidad Autónoma'),
+                    alt.Tooltip('ahorro_energetico_kwh:Q', title='Potential Savings', format=',.0f')
+                ]
+            ).transform_lookup(
+                lookup='properties.name',
+                from_=alt.LookupData(full_solar_data, 'comunidad_autonoma_geojson', ['ahorro_energetico_kwh'])
+            ).project(
+                type="mercator"
+            ).properties(
+                title="Potential Energy Savings (kWh) from Solar Installations"
+            )
+            st.altair_chart(chart_4_1, use_container_width=True)
+            st.markdown("---")
+
+            # Chart 4.2: "Total Cost of Ownership" Analysis
+            st.markdown("### Long-Term Financial Impact Analysis")
+            
+            # Create a dropdown menu
+            high_cost_measures = [
+                "Sustitución luminarias a LED", 
+                "Instalación Fotovoltaica",
+                "Instalación cortina de aire en puerta de entrada",
+                "Sistema de Gestión Energética"
             ]
-        ).transform_lookup(
-            lookup='properties.name',
-            from_=alt.LookupData(full_solar_data, 'comunidad_autonoma_geojson', ['ahorro_energetico_kwh'])
-        ).project(
-            type="mercator"
-        ).properties(
-            title="Potential Energy Savings (kWh) from Solar Installations"
-        )
-        st.altair_chart(chart_4_1, use_container_width=True)
-        st.markdown("---")
-    else:
-        st.error("No se pudo cargar el archivo GeoJSON. Revisa la URL.")
-        st.markdown("---")
-    
-    
+            
+            selected_measure = st.selectbox(
+                "Select a high-cost measure:",
+                options=high_cost_measures
+            )
+
+            # Filter the data for the selected measure
+            measure_data = df_audit[df_audit['medida_mejora'] == selected_measure]
+            
+            if not measure_data.empty:
+                total_investment = measure_data['inversion_eur'].sum()
+                total_annual_savings = measure_data['ahorro_economico_eur'].sum()
+                
+                # Create the waterfall chart data
+                waterfall_data = pd.DataFrame({
+                    'category': ['Investment'] + [f'Year {i+1}' for i in range(10)] + ['Total'],
+                    'amount': [-total_investment] + [total_annual_savings] * 10 + [total_annual_savings * 10 - total_investment]
+                })
+                
+                # Create a color column for the chart
+                waterfall_data['color'] = ['#DC3545'] + ['#28A745'] * 10 + ['#007BFF']
+
                 # Create the Altair waterfall chart
                 chart_4_2 = alt.Chart(waterfall_data).mark_bar().encode(
                     x=alt.X('category', sort=None, axis=alt.Axis(title='Year')),
