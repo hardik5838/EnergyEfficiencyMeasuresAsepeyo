@@ -442,7 +442,6 @@ else:
         
         
         
-       
     with tab4:
         st.header("High-Impact Investments & Future Vision")
         # Chart 4.1: "Photovoltaic Potential" Map
@@ -587,7 +586,12 @@ else:
             )
 
             st.altair_chart(chart_4_3 + text, use_container_width=True)
+        
+    st.markdown("---")
+    st.subheader("Raw Data from the 2025 Energy Audit")
+    st.dataframe(df_audit, use_container_width=True)
 
+    
 
     # --- Future Development Ideas ---
     st.markdown("---")
