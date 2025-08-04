@@ -516,6 +516,61 @@ with tab4:
         st.markdown("---")
     
     
+                # Create the Altair waterfall chart
+                chart_4_2 = alt.Chart(waterfall_data).mark_bar().encode(
+                    x=alt.X('category', sort=None, axis=alt.Axis(title='Year')),
+                    y=alt.Y('amount', axis=alt.Axis(title='Cumulative Financial Impact (€)')),
+                    color=alt.Color('color', scale=None),
+                    tooltip=[
+                        alt.Tooltip('category', title='Category'),
+                        alt.Tooltip('amount', title='Amount', format='€,.0f')
+                    ]
+                ).properties(
+                    title=f"Long-Term Financial Impact for {selected_measure}"
+                )
+                st.altair_chart(chart_4_2, use_container_width=True)
+            else:
+                st.info("No data found for the selected measure.")
+            
+            st.markdown("---")
+
+            # Chart 4.3: Strategic Investment Matrix
+            st.markdown("### Regional Savings vs. Investment Profile")
+            
+            # Calculate total investment and total savings by region
+            regional_summary = df_audit.groupby('comunidad_autonoma').agg(
+                total_investment=('inversion_eur', 'sum'),
+                total_savings=('ahorro_energetico_kwh', 'sum')
+            ).reset_index()
+
+            chart_4_3 = alt.Chart(regional_summary).mark_point(
+                size=100,
+                color='#007BFF'
+            ).encode(
+                x=alt.X('total_savings', axis=alt.Axis(title='Total Energy Savings (kWh)')),
+                y=alt.Y('total_investment', axis=alt.Axis(title='Total Required Investment (€)')),
+                tooltip=[
+                    alt.Tooltip('comunidad_autonoma', title='Comunidad Autónoma'),
+                    alt.Tooltip('total_savings', title='Total Savings', format=',.0f'),
+                    alt.Tooltip('total_investment', title='Total Investment', format='€,.0f')
+                ]
+            )
+            
+            # Add text labels to the points
+            text = chart_4_3.mark_text(
+                align='left',
+                baseline='middle',
+                dx=7
+            ).encode(
+                text='comunidad_autonoma'
+            )
+
+            st.altair_chart(chart_4_3 + text, use_container_width=True)
+        
+    st.markdown("---")
+    st.subheader("Raw Data from the 2025 Energy Audit")
+    st.dataframe(df_audit, use_container_width=True)
+
 
     # --- Future Development Ideas ---
     st.markdown("---")
