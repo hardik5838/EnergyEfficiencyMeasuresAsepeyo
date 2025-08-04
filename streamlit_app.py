@@ -4,6 +4,8 @@ import altair as alt
 import requests
 import json
 
+# Load the GeoJSON data
+source = alt.topo_feature('https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/georef-spain-comunidad-autonoma.geojson', 'spain-autonomous-communities')
 csv_url = 
 
 # Function to load and clean the data
