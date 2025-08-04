@@ -55,6 +55,7 @@ def load_data(url):
         st.error(f"Error loading data: {e}")
         return pd.DataFrame()        
 
+
 @st.cache_data
 def load_geojson(url):
     try:
