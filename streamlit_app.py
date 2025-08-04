@@ -11,18 +11,41 @@ geojson_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeas
 # GitHub raw URL for the CSV data
 csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 
-
 # Function to load and clean the data
 @st.cache_data
 def load_data(url):
-    """
-    Loads the CSV data from a URL and cleans the column names.
-    """
     try:
         df = pd.read_csv(url, header=1)
         df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         df.columns = [col.strip() for col in df.columns]
-        df['Center'] = df['Center'].ffill()
+        
+        # The region name is in an unnamed column, not the 'Center' column.
+        # We find that unnamed column, fill forward, and rename it.
+        region_col = df.columns[0]
+        df[region_col] = df[region_col].ffill()
+
+        # Map the original column names to the new, user-friendly names
+        col_map = {
+            'Money Saved': 'ahorro_economico_eur',
+            region_col: 'comunidad_autonoma',
+            'Center': 'centro',
+            'Investment': 'inversion_eur',
+            'Energy Saved': 'ahorro_energetico_kwh',
+            'Measure': 'medida_mejora',
+            'Pay back period': 'periodo_retorno_simple_anos'
+        }
+        df.rename(columns=col_map, inplace=True)
+
+        # CRUCIAL FIX: Convert the savings column to a numeric type
+        df['ahorro_economico_eur'] = pd.to_numeric(df['ahorro_economico_eur'], errors='coerce')
+        
+        # ... rest of your code ...
+        
+        return df
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return pd.DataFrame()
+
 
         # Map the original column names to the new, user-friendly names
         col_map = {
