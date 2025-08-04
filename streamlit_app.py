@@ -36,13 +36,7 @@ def load_data(url):
         
         df.rename(columns=col_map, inplace=True)
 
-        # Clean and convert numeric columns
-        numeric_cols = ['ahorro_energetico_kwh', 'ahorro_economico_eur', 'inversion_eur', 'periodo_retorno_simple_anos']
-        for col in numeric_cols:
-            if col in df.columns:
-                # Replace comma with dot for decimal separation and ensure non-numeric values become NaN
-                df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+
         
         # Add a category column for measure types. Make sure to handle potential NaN values in 'medida_mejora'
         df['categoria_medida'] = df['medida_mejora'].apply(lambda x: 
