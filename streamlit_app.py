@@ -181,6 +181,7 @@ else:
     
         chart_col1, chart_col2 = st.columns(2)
     
+        # Refactor Chart 1.4.1 Economic & Energy Savings by Region (Economic)
         with chart_col1:
             economic_chart_data = regional_data[['comunidad_autonoma', 'total_savings']].rename(
                 columns={'comunidad_autonoma': 'Comunidad', 'total_savings': 'Total Savings'}
@@ -199,6 +200,7 @@ else:
             )
             st.altair_chart(chart_a, use_container_width=True)
     
+        # Refactor Chart 1.4.2 Economic & Energy Savings by Region (Energy)
         with chart_col2:
             energy_data = df_audit.groupby('comunidad_autonoma')['ahorro_energetico_kwh'].sum().reset_index()
             energy_chart_data = energy_data.rename(
@@ -599,3 +601,4 @@ else:
 - **Interactive Charts**: Add visualizations like bar charts to compare `Energy Saved` or `Money Saved` by `Center` or `Measure`.
 - **Filtering Options**: Allow users to filter the data by `Center` or `Measure` using Streamlit widgets like `st.selectbox`.
 """)
+
