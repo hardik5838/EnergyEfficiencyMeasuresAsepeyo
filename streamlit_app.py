@@ -41,17 +41,7 @@ def load_data(url):
         # These often result from leading blank cells in the header row.
         df = df.loc[:, ~df.columns.astype(str).str.contains('^unnamed')]
 
-        # Final check to ensure 'comunidad_autonoma' column exists after all cleaning
-        if 'comunidad_autonoma' not in df.columns:
-            # Fallback: if 'comunidad_autonoma' is still not found, try to find a column that looks like it
-            found_comunidad_col = False
-            for col_name in df.columns:
-                if 'comunidad' in col_name or 'center' in col_name:
-                    df.rename(columns={col_name: 'comunidad_autonoma'}, inplace=True)
-                    found_comunidad_col = True
-                    break
-            if not found_comunidad_col:
-                raise ValueError("Required column 'Comunidad Autónoma' (or 'Center') not found in the CSV after cleaning.")
+
         
         # Ensure 'comunidad_autonoma' is a simple Series (string type) and fill NaNs
         # ffill() propagates the last valid observation forward to next valid observation
