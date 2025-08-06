@@ -19,32 +19,42 @@ def load_data(url):
     Carga los datos CSV desde una URL y limpia los nombres de las columnas.
     """
     try:
+        # Load the CSV, assuming the header is on the second row (index 1)
         df = pd.read_csv(url, header=1)
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-        df.columns = [col.strip() for col in df.columns]
-        df['Center'] = df['Center'].ffill()
 
-        # Mapea los nombres de las columnas originales a los nuevos nombres amigables
-        col_map = {
-            'Money Saved': 'ahorro_economico_eur',
-            'Investment': 'inversion_eur',
-            'Energy Saved': 'ahorro_energetico_kwh',
-            'Center': 'comunidad_autonoma',
-            'Measure': 'medida_mejora',
-            'Pay back period': 'periodo_retorno_simple_anos'
+        # Clean column names: strip whitespace and convert to lowercase for easier matching
+        df.columns = [col.strip().lower() for col in df.columns]
+
+        # Rename columns to standardized names
+        # Use a dictionary to map possible variations to the target name
+        column_renames = {
+            'comunidad autónoma': 'comunidad_autonoma', # Standardize 'Comunidad Autónoma'
+            'center': 'comunidad_autonoma',          # Map 'Center' to 'comunidad_autonoma'
+            'measure': 'medida_mejora',
+            'energy saved': 'ahorro_energetico_kwh',
+            'money saved': 'ahorro_economico_eur',
+            'investment': 'inversion_eur',
+            'pay back period': 'periodo_retorno_simple_anos'
         }
-        
-        df.rename(columns=col_map, inplace=True)
 
-        # Limpia y convierte las columnas numéricas
+        # Apply renaming. Only rename columns that actually exist in the DataFrame.
+        df.rename(columns={k: v for k, v in column_renames.items() if k in df.columns}, inplace=True)
+
+        # Ensure 'comunidad_autonoma' column exists and fill NaNs
+        if 'comunidad_autonoma' not in df.columns:
+            raise ValueError("Required column 'Comunidad Autónoma' (or 'Center') not found in the CSV after cleaning.")
+        
+        df['comunidad_autonoma'] = df['comunidad_autonoma'].ffill()
+
+        # Clean and convert numeric columns
         numeric_cols = ['ahorro_energetico_kwh', 'ahorro_economico_eur', 'inversion_eur', 'periodo_retorno_simple_anos']
         for col in numeric_cols:
             if col in df.columns:
-                # Reemplaza el punto por nada (miles) y la coma por punto (decimal)
+                # Replace thousands separators (dots) and decimal separators (commas)
                 df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-                df[col] = pd.to_numeric(df[col], errors='coerce') # 'coerce' convierte los errores a NaN
+                df[col] = pd.to_numeric(df[col], errors='coerce') # 'coerce' converts errors to NaN
         
-        # Añade una columna de categoría para los tipos de medida. Maneja los posibles valores NaN en 'medida_mejora'
+        # Add a category column for measure types. Handle potential NaN values in 'medida_mejora'
         df['categoria_medida'] = df['medida_mejora'].apply(lambda x: 
             'Medidas de Control de la iluminación' if 'luminarias' in str(x).lower() or 'iluminación' in str(x).lower() else
             'Medidas de gestión energética' if 'gestión energética' in str(x).lower() or 'fotovoltaica' in str(x).lower() or 'potencia' in str(x).lower() else
@@ -81,7 +91,7 @@ st.title("Resumen de Auditoría Energética para 2025")
 
 df_audit = load_data(csv_url)
 
-if df_audit.empty:
+if df.audit.empty:
     st.warning("No se pudieron cargar los datos de la auditoría energética. Por favor, verifica la URL de GitHub y la ruta del archivo.")
 else:
     # --- Interfaz con pestañas ---
@@ -512,7 +522,6 @@ else:
             full_solar_data = pd.merge(full_solar_data, solar_savings_by_region, on='comunidad_autonoma', how='left').fillna(0)
 
             # Mapea manualmente los nombres para que coincidan con las propiedades de GeoJSON
-            # Los nombres de GeoJSON están en español, pero sin tildes o con ligeras variaciones
             name_mapping = {
                 'Andalucía': 'Andalucía',
                 'Aragón': 'Aragón',
@@ -701,4 +710,3 @@ else:
 - **Gráficos Interactivos**: Añadir visualizaciones como gráficos de barras para comparar `Energy Saved` o `Money Saved` por `Center` o `Measure`.
 - **Opciones de Filtrado**: Permitir a los usuarios filtrar los datos por `Center` o `Measure` utilizando widgets de Streamlit como `st.selectbox`.
 """)
-
