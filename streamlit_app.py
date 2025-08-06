@@ -301,7 +301,7 @@ else:
             x='x'
         )
         
-        hline = alt.Chart(pd.DataFrame({'y': [1000)})).mark_rule(
+        hline = alt.Chart(pd.DataFrame({'y': [1000]})).mark_rule(
             color='#6C757D', strokeDash=[4, 4]
         ).encode(
             y='y'
