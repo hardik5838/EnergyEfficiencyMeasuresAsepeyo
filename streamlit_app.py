@@ -15,12 +15,9 @@ csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasures
 # Función para cargar y limpiar los datos
 @st.cache_data
 def load_data(url):
-    """
-    Carga los datos CSV desde una URL y limpia los nombres de las columnas.
-    """
     try:
         # Load the CSV, assuming the header is on the second row (index 1)
-        df = pd.read_csv(url, header=1)
+        df = pd.read_csv(url, header=0)
 
         # Clean column names: strip whitespace and convert to lowercase for easier matching
         df.columns = [col.strip().lower() for col in df.columns]
