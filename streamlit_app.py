@@ -22,18 +22,15 @@ def load_data(url):
         # Load the CSV without a header initially to inspect rows
         df = pd.read_csv(url, header=None)
 
-        # Find the row that contains the actual headers (e.g., 'Comunidad Autónoma', 'Center')
-        # We'll look for 'Energy Saved' as a reliable indicator of the header row
-        header_row_index = None
-        for i, row in df.iterrows():
-            if 'Energy Saved' in row.astype(str).values:
-                header_row_index = i
-                break
-        
-        if header_row_index is None:
-            raise ValueError("Could not find the header row in the CSV. 'Energy Saved' column not found.")
+# Set the identified row as the new header and drop rows above it
+        df.columns = df.iloc[header_row_index]
+        df = df[header_row_index+1:].reset_index(drop=True)
 
-        # Set the identified row as the new header and drop rows above it
+        # IMPORTANT: Flatten MultiIndex columns if they exist, then clean
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = ['_'.join(filter(None, col)).strip().lower() for col in df.columns.ravel()]
+        else:
+            df.columns = [col.strip().lower() for col in df.columns]
         df.columns = df.iloc[header_row_index]
         df = df[header_row_index+1:].reset_index(drop=True)
 
