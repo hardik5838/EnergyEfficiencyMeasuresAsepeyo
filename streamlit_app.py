@@ -19,14 +19,8 @@ def load_data(url):
     Carga los datos CSV desde una URL y limpia los nombres de las columnas.
     """
     try:
-        # Load the CSV without a header initially to inspect rows
-        df = pd.read_csv(url, header=None)
+        df = pd.read_csv(url, header=0)
 
-# Set the identified row as the new header and drop rows above it
-        df.columns = df.iloc[header_row_index]
-        df = df[header_row_index+1:].reset_index(drop=True)
-
-        # IMPORTANT: Flatten MultiIndex columns if they exist, then clean
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = ['_'.join(filter(None, col)).strip().lower() for col in df.columns.ravel()]
         else:
