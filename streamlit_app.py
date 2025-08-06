@@ -5,10 +5,7 @@ import requests
 import json
 import altair_data_server
 
-# GitHub raw URL for the GeoJSON file
-geojson_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/georef-spain-comunidad-autonoma.geojson"
-
-# GitHub raw URL for the CSV data
+geojson_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv"
 
 # Function to load and clean the data
