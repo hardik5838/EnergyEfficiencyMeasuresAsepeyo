@@ -15,15 +15,32 @@ csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasures
 # Función para cargar y limpiar los datos
 @st.cache_data
 def load_data(url):
+    """
+    Carga los datos CSV desde una URL y limpia los nombres de las columnas.
+    """
     try:
-        # Load the CSV, assuming the header is on the second row (index 1)
-        df = pd.read_csv(url, header=0)
+        # Load the CSV without a header initially to inspect rows
+        df = pd.read_csv(url, header=None)
+
+        # Find the row that contains the actual headers (e.g., 'Comunidad Autónoma', 'Center')
+        # We'll look for 'Energy Saved' as a reliable indicator of the header row
+        header_row_index = None
+        for i, row in df.iterrows():
+            if 'Energy Saved' in row.astype(str).values:
+                header_row_index = i
+                break
+        
+        if header_row_index is None:
+            raise ValueError("Could not find the header row in the CSV. 'Energy Saved' column not found.")
+
+        # Set the identified row as the new header and drop rows above it
+        df.columns = df.iloc[header_row_index]
+        df = df[header_row_index+1:].reset_index(drop=True)
 
         # Clean column names: strip whitespace and convert to lowercase for easier matching
         df.columns = [col.strip().lower() for col in df.columns]
 
         # Rename columns to standardized names
-        # Use a dictionary to map possible variations to the target name
         column_renames = {
             'comunidad autónoma': 'comunidad_autonoma', # Standardize 'Comunidad Autónoma'
             'center': 'comunidad_autonoma',          # Map 'Center' to 'comunidad_autonoma'
@@ -37,11 +54,15 @@ def load_data(url):
         # Apply renaming. Only rename columns that actually exist in the DataFrame.
         df.rename(columns={k: v for k, v in column_renames.items() if k in df.columns}, inplace=True)
 
-        # Ensure 'comunidad_autonoma' column exists and fill NaNs
+        # Remove any remaining 'Unnamed' columns (which might appear if there were leading commas)
+        df = df.loc[:, ~df.columns.astype(str).str.contains('^unnamed')]
+
+        # Final check for 'comunidad_autonoma' and fill NaNs
         if 'comunidad_autonoma' not in df.columns:
             raise ValueError("Required column 'Comunidad Autónoma' (or 'Center') not found in the CSV after cleaning.")
         
-        df['comunidad_autonoma'] = df['comunidad_autonoma'].ffill()
+        # Ensure 'comunidad_autonoma' is a simple Series and fill NaNs
+        df['comunidad_autonoma'] = df['comunidad_autonoma'].astype(str).ffill()
 
         # Clean and convert numeric columns
         numeric_cols = ['ahorro_energetico_kwh', 'ahorro_economico_eur', 'inversion_eur', 'periodo_retorno_simple_anos']
@@ -88,7 +109,7 @@ st.title("Resumen de Auditoría Energética para 2025")
 
 df_audit = load_data(csv_url)
 
-if df_audit.empty:
+if df_audit.empty: 
     st.warning("No se pudieron cargar los datos de la auditoría energética. Por favor, verifica la URL de GitHub y la ruta del archivo.")
 else:
     # --- Interfaz con pestañas ---
@@ -281,7 +302,7 @@ else:
             x='x'
         )
         
-        hline = alt.Chart(pd.DataFrame({'y': [1000]})).mark_rule(
+        hline = alt.Chart(pd.DataFrame({'y': [1000)})).mark_rule(
             color='#6C757D', strokeDash=[4, 4]
         ).encode(
             y='y'
