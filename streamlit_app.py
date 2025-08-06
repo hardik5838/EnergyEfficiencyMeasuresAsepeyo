@@ -25,8 +25,6 @@ def load_data(url):
             df.columns = ['_'.join(filter(None, col)).strip().lower() for col in df.columns.ravel()]
         else:
             df.columns = [col.strip().lower() for col in df.columns]
-        df.columns = df.iloc[header_row_index]
-        df = df[header_row_index+1:].reset_index(drop=True)
 
         # Clean column names: strip whitespace and convert to lowercase for easier matching
         df.columns = [col.strip().lower() for col in df.columns]
