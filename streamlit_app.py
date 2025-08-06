@@ -21,7 +21,7 @@ def load_data(url):
     try:
         # Read the CSV with header=1 as per user's instruction
         # This means the second row of the CSV will be used as headers
-        df = pd.read_csv(url, header=1)
+        df = pd.read_csv(url, header=0)
 
         # Force column names to be simple strings, strip whitespace, and convert to lowercase.
         # This is crucial for handling potential MultiIndex or irregular column names that
