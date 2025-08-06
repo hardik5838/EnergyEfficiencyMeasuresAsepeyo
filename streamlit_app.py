@@ -8,7 +8,7 @@ import io # Import the io module
 # URL raw de GitHub para el archivo GeoJSON
 geojson_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/georef-spain-comunidad-autonoma.geojson"
 
-df_reshaped = pd.read_csv('https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv')
+df_load_data = pd.read_csv('https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/2025%20Energy%20Audit%20summary%20-%20Sheet1.csv')
 
 @st.cache_data
 def load_geojson(url):
@@ -22,8 +22,6 @@ def load_geojson(url):
     except Exception as e:
         st.error(f"Error parsing GeoJSON: {e}")
         return None
-
-
 
 
 # Configuración del diseño de la aplicación Streamlit
