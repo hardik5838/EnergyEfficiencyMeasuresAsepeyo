@@ -3,7 +3,7 @@ import pandas as pd
 import altair as alt
 import requests
 import json
-import altair_data_server
+import io # Import the io module
 
 # URL raw de GitHub para el archivo GeoJSON
 geojson_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasuresAsepeyo/refs/heads/main/Data/georef-spain-comunidad-autonoma.geojson"
@@ -19,23 +19,27 @@ def load_data(url):
     Carga los datos CSV desde una URL y limpia los nombres de las columnas.
     """
     try:
-        # Load the CSV without a header initially to inspect rows
-        df = pd.read_csv(url, header=None)
+        # Fetch the raw CSV content as text
+        response = requests.get(url)
+        response.raise_for_status() # Raise an HTTPError for bad responses (4xx or 5xx)
+        csv_lines = response.text.splitlines()
 
-        # Find the row that contains the actual headers (e.g., 'Comunidad Autónoma', 'Center')
-        # We'll look for 'Energy Saved' as a reliable indicator of the header row
-        header_row_index = None
-        for i, row in df.iterrows():
-            if 'Energy Saved' in row.astype(str).values:
+        # Manually find the header row
+        header_row_index = -1
+        for i, line in enumerate(csv_lines):
+            # Look for a unique column name that indicates the header row
+            if 'Energy Saved' in line:
                 header_row_index = i
                 break
         
-        if header_row_index is None:
+        if header_row_index == -1:
             raise ValueError("Could not find the header row in the CSV. 'Energy Saved' column not found.")
 
-        # Set the identified row as the new header and drop rows above it
-        df.columns = df.iloc[header_row_index]
-        df = df[header_row_index+1:].reset_index(drop=True)
+        # Reconstruct the CSV content starting from the header row
+        cleaned_csv_content = "\n".join(csv_lines[header_row_index:])
+
+        # Read the cleaned CSV content into a DataFrame
+        df = pd.read_csv(io.StringIO(cleaned_csv_content))
 
         # Clean column names: strip whitespace and convert to lowercase for easier matching
         df.columns = [col.strip().lower() for col in df.columns]
@@ -302,7 +306,7 @@ else:
             x='x'
         )
         
-        hline = alt.Chart(pd.DataFrame({'y': [1000]})).mark_rule(
+        hline = alt.Chart(pd.DataFrame({'y': [1000)})).mark_rule(
             color='#6C757D', strokeDash=[4, 4]
         ).encode(
             y='y'
@@ -728,4 +732,5 @@ else:
 - **Gráficos Interactivos**: Añadir visualizaciones como gráficos de barras para comparar `Energy Saved` o `Money Saved` por `Center` o `Measure`.
 - **Opciones de Filtrado**: Permitir a los usuarios filtrar los datos por `Center` o `Measure` utilizando widgets de Streamlit como `st.selectbox`.
 """)
+
 
