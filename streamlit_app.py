@@ -86,7 +86,7 @@ def load_geojson(url):
 # Configuración del diseño de la aplicación Streamlit
 st.set_page_config(
     page_title="Resumen de Auditoría Energética 2025",
-    layout="wide"
+    layout="wide",
     page_icon="🏂",
 
 )
