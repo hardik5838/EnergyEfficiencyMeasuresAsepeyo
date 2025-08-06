@@ -88,7 +88,7 @@ st.title("Resumen de Auditoría Energética para 2025")
 
 df_audit = load_data(csv_url)
 
-if df.audit.empty:
+if df_audit.empty:
     st.warning("No se pudieron cargar los datos de la auditoría energética. Por favor, verifica la URL de GitHub y la ruta del archivo.")
 else:
     # --- Interfaz con pestañas ---
