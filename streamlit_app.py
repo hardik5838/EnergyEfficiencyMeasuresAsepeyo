@@ -19,8 +19,6 @@ def load_data(url):
         df = pd.read_csv(url, header=0)
 
         df.columns = [col.strip().lower() for col in df.columns]
-
-        # Rename columns to standardized names
         column_renames = {
             'comunidad autónoma': 'comunidad_autonoma', # Standardize 'Comunidad Autónoma'
             'center': 'comunidad_autonoma',          # Map 'Center' to 'comunidad_autonoma'
@@ -31,26 +29,6 @@ def load_data(url):
             'pay back period': 'periodo_retorno_simple_anos'
         }
 
-        # Apply renaming. Only rename columns that actually exist in the DataFrame.
-        df.rename(columns={k: v for k, v in column_renames.items() if k in df.columns}, inplace=True)
-
-        # Remove any remaining 'Unnamed' columns (which might appear if there were leading commas)
-        df = df.loc[:, ~df.columns.astype(str).str.contains('^unnamed')]
-
-        # Final check for 'comunidad_autonoma' and fill NaNs
-        if 'comunidad_autonoma' not in df.columns:
-            raise ValueError("Required column 'Comunidad Autónoma' (or 'Center') not found in the CSV after cleaning.")
-        
-        # Ensure 'comunidad_autonoma' is a simple Series and fill NaNs
-        df['comunidad_autonoma'] = df['comunidad_autonoma'].astype(str).ffill()
-
-        # Clean and convert numeric columns
-        numeric_cols = ['ahorro_energetico_kwh', 'ahorro_economico_eur', 'inversion_eur', 'periodo_retorno_simple_anos']
-        for col in numeric_cols:
-            if col in df.columns:
-                # Replace thousands separators (dots) and decimal separators (commas)
-                df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-                df[col] = pd.to_numeric(df[col], errors='coerce') # 'coerce' converts errors to NaN
         
         # Add a category column for measure types. Handle potential NaN values in 'medida_mejora'
         df['categoria_medida'] = df['medida_mejora'].apply(lambda x: 
