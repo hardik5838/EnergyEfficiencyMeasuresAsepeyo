@@ -15,10 +15,32 @@ csv_url = "https://raw.githubusercontent.com/hardik5838/EnergyEfficiencyMeasures
 # Función para cargar y limpiar los datos
 @st.cache_data
 def load_data(url):
+    """
+    Carga los datos CSV desde una URL y limpia los nombres de las columnas.
+    """
     try:
-        df = pd.read_csv(url, header=0)
+        # Load the CSV without a header initially to inspect rows
+        df = pd.read_csv(url, header=None)
 
+        # Find the row that contains the actual headers (e.g., 'Comunidad Autónoma', 'Center')
+        # We'll look for 'Energy Saved' as a reliable indicator of the header row
+        header_row_index = None
+        for i, row in df.iterrows():
+            if 'Energy Saved' in row.astype(str).values:
+                header_row_index = i
+                break
+        
+        if header_row_index is None:
+            raise ValueError("Could not find the header row in the CSV. 'Energy Saved' column not found.")
+
+        # Set the identified row as the new header and drop rows above it
+        df.columns = df.iloc[header_row_index]
+        df = df[header_row_index+1:].reset_index(drop=True)
+
+        # Clean column names: strip whitespace and convert to lowercase for easier matching
         df.columns = [col.strip().lower() for col in df.columns]
+
+        # Rename columns to standardized names
         column_renames = {
             'comunidad autónoma': 'comunidad_autonoma', # Standardize 'Comunidad Autónoma'
             'center': 'comunidad_autonoma',          # Map 'Center' to 'comunidad_autonoma'
@@ -29,6 +51,35 @@ def load_data(url):
             'pay back period': 'periodo_retorno_simple_anos'
         }
 
+        # Apply renaming. Only rename columns that actually exist in the DataFrame.
+        df.rename(columns={k: v for k, v in column_renames.items() if k in df.columns}, inplace=True)
+
+        # Remove any remaining 'Unnamed' columns (which might appear if there were leading commas)
+        df = df.loc[:, ~df.columns.astype(str).str.contains('^unnamed')]
+
+        # Final check for 'comunidad_autonoma' and fill NaNs
+        if 'comunidad_autonoma' not in df.columns:
+            raise ValueError("Required column 'Comunidad Autónoma' (or 'Center') not found in the CSV after cleaning.")
+        
+        # Ensure 'comunidad_autonoma' is a simple Series and fill NaNs
+        df['comunidad_autonoma'] = df['comunidad_autonoma'].astype(str).ffill()
+
+        # Clean and convert numeric columns
+        numeric_cols = ['ahorro_energetico_kwh', 'ahorro_economico_eur', 'inversion_eur', 'periodo_retorno_simple_anos']
+        for col in numeric_cols:
+            if col in df.columns:
+                # Replace thousands separators (dots) and decimal separators (commas)
+                df[col] = df[col].astype(str).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+                df[col] = pd.to_numeric(df[col], errors='coerce') # 'coerce' converts errors to NaN
+        
+        # Add a category column for measure types. Handle potential NaN values in 'medida_mejora'
+        df['categoria_medida'] = df['medida_mejora'].apply(lambda x: 
+            'Medidas de Control de la iluminación' if 'luminarias' in str(x).lower() or 'iluminación' in str(x).lower() else
+            'Medidas de gestión energética' if 'gestión energética' in str(x).lower() or 'fotovoltaica' in str(x).lower() or 'potencia' in str(x).lower() else
+            'Medidas de control térmico' if 'temperatura' in str(x).lower() or 'gasóleo' in str(x).lower() or 'calor' in str(x).lower() or 'cortina de aire' in str(x).lower() else
+            'Otros'
+        )
+        
         return df
     except Exception as e:
         st.error(f"Error loading data: {e}")
@@ -251,7 +302,7 @@ else:
             x='x'
         )
         
-        hline = alt.Chart(pd.DataFrame({'y': [1000]})).mark_rule(
+        hline = alt.Chart(pd.DataFrame({'y': [1000)})).mark_rule(
             color='#6C757D', strokeDash=[4, 4]
         ).encode(
             y='y'
@@ -677,3 +728,4 @@ else:
 - **Gráficos Interactivos**: Añadir visualizaciones como gráficos de barras para comparar `Energy Saved` o `Money Saved` por `Center` o `Measure`.
 - **Opciones de Filtrado**: Permitir a los usuarios filtrar los datos por `Center` o `Measure` utilizando widgets de Streamlit como `st.selectbox`.
 """)
+
