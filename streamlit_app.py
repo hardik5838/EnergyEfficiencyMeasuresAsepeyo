@@ -87,6 +87,8 @@ def load_geojson(url):
 st.set_page_config(
     page_title="Resumen de Auditoría Energética 2025",
     layout="wide"
+    page_icon="🏂",
+
 )
 
 st.title("Resumen de Auditoría Energética para 2025")
