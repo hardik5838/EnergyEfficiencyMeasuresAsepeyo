@@ -23,11 +23,6 @@ def load_data(url):
         # This means the second row of the CSV will be used as headers
         df = pd.read_csv(url, header=0)
 
-        # Force column names to be simple strings, strip whitespace, and convert to lowercase.
-        # This is crucial for handling potential MultiIndex or irregular column names that
-        # might arise from the CSV's structure (e.g., leading blank column).
-        df.columns = [str(col).strip().lower() for col in df.columns]
-
         # Define a mapping for standardizing column names
         column_renames = {
             'comunidad autónoma': 'comunidad_autonoma', # Standardize 'Comunidad Autónoma'
