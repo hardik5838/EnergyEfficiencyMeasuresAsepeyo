@@ -3,4 +3,4 @@ pandas
 altair
 requests
 altair_data_server
-import plotly.express as px
+plotly.express
