@@ -32,6 +32,45 @@ df = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
 
 if not df.empty:
 
+
+
+    # Sidebar Filters with Multi-Select
+    with st.sidebar:
+        st.title('⚡ Asepeyo Energy Dashboard')
+        
+        # 1. Filter by Autonomous Community
+        community_list = ['All'] + sorted(df['Comunidad Autónoma'].unique().tolist())
+        selected_community = st.selectbox('Select a Community', community_list)
+
+        # Initialize df_filtered and selected_centers
+        selected_centers = []
+        if selected_community == 'All':
+            df_filtered = df
+        else:
+            df_community_filtered = df[df['Comunidad Autónoma'] == selected_community]
+            
+            # 2. Dependent MULTI-SELECT for Center
+            center_list = sorted(df_community_filtered['Center'].unique().tolist())
+            selected_centers = st.multiselect(
+                'Select one or more Centers to compare', 
+                center_list, 
+                default=center_list  # By default, all centers in the community are selected
+            )
+
+            # Further filter by the list of selected centers
+            if selected_centers:
+                df_filtered = df_community_filtered[df_community_filtered['Center'].isin(selected_centers)]
+            else:
+                # If no center is selected, show an empty dataframe
+                df_filtered = pd.DataFrame(columns=df.columns)
+        st.markdown("---") # Adds a visual separator
+        analysis_type = st.radio(
+            "Select Analysis Type for Charts",
+            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'),
+            key='analysis_type'
+        )
+
+
 # --- Categorize Measures ---
 # --- Dynamic Measure Categorization ---
 
@@ -110,43 +149,6 @@ if not df.empty:
         df = categorize_by_function(df)
     else: # Default to 'Tipo de Medida'
         df = categorize_by_tipo(df)
-    
-    # Sidebar Filters with Multi-Select
-    with st.sidebar:
-        st.title('⚡ Asepeyo Energy Dashboard')
-        
-        # 1. Filter by Autonomous Community
-        community_list = ['All'] + sorted(df['Comunidad Autónoma'].unique().tolist())
-        selected_community = st.selectbox('Select a Community', community_list)
-
-        # Initialize df_filtered and selected_centers
-        selected_centers = []
-        if selected_community == 'All':
-            df_filtered = df
-        else:
-            df_community_filtered = df[df['Comunidad Autónoma'] == selected_community]
-            
-            # 2. Dependent MULTI-SELECT for Center
-            center_list = sorted(df_community_filtered['Center'].unique().tolist())
-            selected_centers = st.multiselect(
-                'Select one or more Centers to compare', 
-                center_list, 
-                default=center_list  # By default, all centers in the community are selected
-            )
-
-            # Further filter by the list of selected centers
-            if selected_centers:
-                df_filtered = df_community_filtered[df_community_filtered['Center'].isin(selected_centers)]
-            else:
-                # If no center is selected, show an empty dataframe
-                df_filtered = pd.DataFrame(columns=df.columns)
-        st.markdown("---") # Adds a visual separator
-        analysis_type = st.radio(
-            "Select Analysis Type for Charts",
-            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'),
-            key='analysis_type'
-        )
-
     
     # Main Panel with Dynamic Title
     st.title("Energy Efficiency Analysis")
