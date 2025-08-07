@@ -2,275 +2,200 @@
 # Import libraries
 import streamlit as st
 import pandas as pd
-import altair as alt
 import plotly.express as px
+import altair as alt
 
 #######################
 # Page configuration
 st.set_page_config(
-    page_title="Energy Efficiency Dashboard",
+    page_title="Asepeyo Energy Efficiency Dashboard",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded")
+    initial_sidebar_state="expanded"
+)
 
-alt.themes.enable("dark")
-
-#######################
-# CSS styling
-st.markdown("""
-<style>
-
-[data-testid="block-container"] {
-    padding-left: 2rem;
-    padding-right: 2rem;
-    padding-top: 1rem;
-    padding-bottom: 0rem;
-    margin-bottom: -7rem;
-}
-
-[data-testid="stVerticalBlock"] {
-    padding-left: 0rem;
-    padding-right: 0rem;
-}
-
-[data-testid="stMetric"] {
-    background-color: #393939;
-    text-align: center;
-    padding: 15px 0;
-}
-
-[data-testid="stMetricLabel"] {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-[data-testid="stMetricDeltaIcon-Up"] {
-    position: relative;
-    left: 38%;
-    -webkit-transform: translateX(-50%);
-    -ms-transform: translateX(-50%);
-    transform: translateX(-50%);
-}
-
-[data-testid="stMetricDeltaIcon-Down"] {
-    position: relative;
-    left: 38%;
-    -webkit-transform: translateX(-50%);
-    -ms-transform: translateX(-50%);
-    transform: translateX(-50%);
-}
-
-</style>
-""", unsafe_allow_html=True)
-
+# Set Altair theme to light for better contrast
+alt.themes.enable("default")
 
 #######################
-# Load data
-df_reshaped = pd.read_csv('data/us-population-2010-2019-reshaped.csv')
+# Load and process data
+@st.cache_data
+def load_data(file_path):
+    """Loads and processes the energy audit data."""
+    try:
+        df = pd.read_csv(file_path)
+        # Clean column names
+        df.columns = df.columns.str.strip()
+        # Convert numeric columns, filling errors with 0
+        for col in ['Energy Saved', 'Money Saved', 'Investment', 'Pay back period']:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+        df.fillna(0, inplace=True)
+        return df
+    except FileNotFoundError:
+        st.error(f"Error: The file '{file_path}' was not found. Please make sure the file is in the correct directory.")
+        return pd.DataFrame() # Return empty DataFrame on error
 
+# Provide the correct path to your CSV file
+df = load_data('2025 Energy Audit summary - Sheet1 (1).csv')
 
-#######################
-# Sidebar
-with st.sidebar:
-    st.title('🏂 US Population Dashboard')
-    
-    year_list = list(df_reshaped.year.unique())[::-1]
-    
-    selected_year = st.selectbox('Select a year', year_list)
-    df_selected_year = df_reshaped[df_reshaped.year == selected_year]
-    df_selected_year_sorted = df_selected_year.sort_values(by="population", ascending=False)
+if not df.empty:
 
-    color_theme_list = ['blues', 'cividis', 'greens', 'inferno', 'magma', 'plasma', 'reds', 'rainbow', 'turbo', 'viridis']
-    selected_color_theme = st.selectbox('Select a color theme', color_theme_list)
-
-
-#######################
-# Plots
-
-# Heatmap
-def make_heatmap(input_df, input_y, input_x, input_color, input_color_theme):
-    heatmap = alt.Chart(input_df).mark_rect().encode(
-            y=alt.Y(f'{input_y}:O', axis=alt.Axis(title="Year", titleFontSize=18, titlePadding=15, titleFontWeight=900, labelAngle=0)),
-            x=alt.X(f'{input_x}:O', axis=alt.Axis(title="", titleFontSize=18, titlePadding=15, titleFontWeight=900)),
-            color=alt.Color(f'max({input_color}):Q',
-                             legend=None,
-                             scale=alt.Scale(scheme=input_color_theme)),
-            stroke=alt.value('black'),
-            strokeWidth=alt.value(0.25),
-        ).properties(width=900
-        ).configure_axis(
-        labelFontSize=12,
-        titleFontSize=12
-        ) 
-    # height=300
-    return heatmap
-
-# Choropleth map
-def make_choropleth(input_df, input_id, input_column, input_color_theme):
-    choropleth = px.choropleth(input_df, locations=input_id, color=input_column, locationmode="USA-states",
-                               color_continuous_scale=input_color_theme,
-                               range_color=(0, max(df_selected_year.population)),
-                               scope="usa",
-                               labels={'population':'Population'}
-                              )
-    choropleth.update_layout(
-        template='plotly_dark',
-        plot_bgcolor='rgba(0, 0, 0, 0)',
-        paper_bgcolor='rgba(0, 0, 0, 0)',
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=350
-    )
-    return choropleth
-
-
-# Donut chart
-def make_donut(input_response, input_text, input_color):
-  if input_color == 'blue':
-      chart_color = ['#29b5e8', '#155F7A']
-  if input_color == 'green':
-      chart_color = ['#27AE60', '#12783D']
-  if input_color == 'orange':
-      chart_color = ['#F39C12', '#875A12']
-  if input_color == 'red':
-      chart_color = ['#E74C3C', '#781F16']
-    
-  source = pd.DataFrame({
-      "Topic": ['', input_text],
-      "% value": [100-input_response, input_response]
-  })
-  source_bg = pd.DataFrame({
-      "Topic": ['', input_text],
-      "% value": [100, 0]
-  })
-    
-  plot = alt.Chart(source).mark_arc(innerRadius=45, cornerRadius=25).encode(
-      theta="% value",
-      color= alt.Color("Topic:N",
-                      scale=alt.Scale(
-                          #domain=['A', 'B'],
-                          domain=[input_text, ''],
-                          # range=['#29b5e8', '#155F7A']),  # 31333F
-                          range=chart_color),
-                      legend=None),
-  ).properties(width=130, height=130)
-    
-  text = plot.mark_text(align='center', color="#29b5e8", font="Lato", fontSize=32, fontWeight=700, fontStyle="italic").encode(text=alt.value(f'{input_response} %'))
-  plot_bg = alt.Chart(source_bg).mark_arc(innerRadius=45, cornerRadius=20).encode(
-      theta="% value",
-      color= alt.Color("Topic:N",
-                      scale=alt.Scale(
-                          # domain=['A', 'B'],
-                          domain=[input_text, ''],
-                          range=chart_color),  # 31333F
-                      legend=None),
-  ).properties(width=130, height=130)
-  return plot_bg + plot + text
-
-# Convert population to text 
-def format_number(num):
-    if num > 1000000:
-        if not num % 1000000:
-            return f'{num // 1000000} M'
-        return f'{round(num / 1000000, 1)} M'
-    return f'{num // 1000} K'
-
-# Calculation year-over-year population migrations
-def calculate_population_difference(input_df, input_year):
-  selected_year_data = input_df[input_df['year'] == input_year].reset_index()
-  previous_year_data = input_df[input_df['year'] == input_year - 1].reset_index()
-  selected_year_data['population_difference'] = selected_year_data.population.sub(previous_year_data.population, fill_value=0)
-  return pd.concat([selected_year_data.states, selected_year_data.id, selected_year_data.population, selected_year_data.population_difference], axis=1).sort_values(by="population_difference", ascending=False)
-
-
-#######################
-# Dashboard Main Panel
-col = st.columns((1.5, 4.5, 2), gap='medium')
-
-with col[0]:
-    st.markdown('#### Gains/Losses')
-
-    df_population_difference_sorted = calculate_population_difference(df_reshaped, selected_year)
-
-    if selected_year > 2010:
-        first_state_name = df_population_difference_sorted.states.iloc[0]
-        first_state_population = format_number(df_population_difference_sorted.population.iloc[0])
-        first_state_delta = format_number(df_population_difference_sorted.population_difference.iloc[0])
-    else:
-        first_state_name = '-'
-        first_state_population = '-'
-        first_state_delta = ''
-    st.metric(label=first_state_name, value=first_state_population, delta=first_state_delta)
-
-    if selected_year > 2010:
-        last_state_name = df_population_difference_sorted.states.iloc[-1]
-        last_state_population = format_number(df_population_difference_sorted.population.iloc[-1])   
-        last_state_delta = format_number(df_population_difference_sorted.population_difference.iloc[-1])   
-    else:
-        last_state_name = '-'
-        last_state_population = '-'
-        last_state_delta = ''
-    st.metric(label=last_state_name, value=last_state_population, delta=last_state_delta)
-
-    
-    st.markdown('#### States Migration')
-
-    if selected_year > 2010:
-        # Filter states with population difference > 50000
-        # df_greater_50000 = df_population_difference_sorted[df_population_difference_sorted.population_difference_absolute > 50000]
-        df_greater_50000 = df_population_difference_sorted[df_population_difference_sorted.population_difference > 50000]
-        df_less_50000 = df_population_difference_sorted[df_population_difference_sorted.population_difference < -50000]
+    #######################
+    # Sidebar Filters with Dependent Dropdowns
+    with st.sidebar:
+        st.title('⚡ Asepeyo Energy Dashboard')
         
-        # % of States with population difference > 50000
-        states_migration_greater = round((len(df_greater_50000)/df_population_difference_sorted.states.nunique())*100)
-        states_migration_less = round((len(df_less_50000)/df_population_difference_sorted.states.nunique())*100)
-        donut_chart_greater = make_donut(states_migration_greater, 'Inbound Migration', 'green')
-        donut_chart_less = make_donut(states_migration_less, 'Outbound Migration', 'red')
+        # 1. Filter by Autonomous Community
+        community_list = ['All'] + sorted(df['Comunidad Autónoma'].unique().tolist())
+        selected_community = st.selectbox('Select a Community', community_list)
+
+        # Initialize df_filtered with community selection
+        if selected_community == 'All':
+            df_filtered = df
+            selected_center = 'All' # No center selection if all communities are shown
+        else:
+            df_filtered = df[df['Comunidad Autónoma'] == selected_community]
+            
+            # 2. Dependent Filter for Center
+            center_list = ['All'] + sorted(df_filtered['Center'].unique().tolist())
+            selected_center = st.selectbox('Select a Center', center_list)
+
+            # Further filter by center if a specific one is chosen
+            if selected_center != 'All':
+                df_filtered = df_filtered[df_filtered['Center'] == selected_center]
+
+
+    #######################
+    # Main Panel with Dynamic Title
+    st.title("Energy Efficiency Analysis")
+    # Create a dynamic subheader
+    if selected_community == 'All':
+        st.header("Showing data for All Communities")
+    elif selected_center == 'All':
+        st.header(f"Showing all centers in: {selected_community}")
     else:
-        states_migration_greater = 0
-        states_migration_less = 0
-        donut_chart_greater = make_donut(states_migration_greater, 'Inbound Migration', 'green')
-        donut_chart_less = make_donut(states_migration_less, 'Outbound Migration', 'red')
+        st.header(f"Showing data for: {selected_center}")
 
-    migrations_col = st.columns((0.2, 1, 0.2))
-    with migrations_col[1]:
-        st.write('Inbound')
-        st.altair_chart(donut_chart_greater)
-        st.write('Outbound')
-        st.altair_chart(donut_chart_less)
 
-with col[1]:
-    st.markdown('#### Total Population')
+    # --- Key Performance Indicators (KPIs) ---
+    total_investment = df_filtered['Investment'].sum()
+    total_money_saved = df_filtered['Money Saved'].sum()
+    total_energy_saved = df_filtered['Energy Saved'].sum()
     
-    choropleth = make_choropleth(df_selected_year, 'states_code', 'population', selected_color_theme)
-    st.plotly_chart(choropleth, use_container_width=True)
-    
-    heatmap = make_heatmap(df_reshaped, 'year', 'states', 'population', selected_color_theme)
-    st.altair_chart(heatmap, use_container_width=True)
-    
+    # Avoid division by zero for ROI calculation
+    if total_investment > 0:
+        roi = (total_money_saved / total_investment) * 100
+    else:
+        roi = 0
 
-with col[2]:
-    st.markdown('#### Top States')
-
-    st.dataframe(df_selected_year_sorted,
-                 column_order=("states", "population"),
-                 hide_index=True,
-                 width=None,
-                 column_config={
-                    "states": st.column_config.TextColumn(
-                        "States",
-                    ),
-                    "population": st.column_config.ProgressColumn(
-                        "Population",
-                        format="%f",
-                        min_value=0,
-                        max_value=max(df_selected_year_sorted.population),
-                     )}
-                 )
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1.metric(label="Total Investment", value=f"€ {total_investment:,.0f}")
+    kpi2.metric(label="Total Money Saved", value=f"€ {total_money_saved:,.0f}")
+    kpi3.metric(label="Total Energy Saved", value=f"{total_energy_saved:,.0f} kWh")
+    kpi4.metric(label="Return on Investment (ROI)", value=f"{roi:.2f} %")
     
-    with st.expander('About', expanded=True):
-        st.write('''
-            - Data: [U.S. Census Bureau](https://www.census.gov/data/datasets/time-series/demo/popest/2010s-state-total.html).
-            - :orange[**Gains/Losses**]: states with high inbound/ outbound migration for selected year
-            - :orange[**States Migration**]: percentage of states with annual inbound/ outbound migration > 50,000
-            ''')
+    st.markdown("---")
+
+
+    # --- Chart Layout ---
+    col1, col2 = st.columns(2, gap="large")
+
+    with col1:
+        # --- Chart 1: Measures required per community/center ---
+        st.subheader("Measure Counts")
+        if selected_community == 'All':
+            # Group by community if 'All' is selected
+            measures_count = df.groupby('Comunidad Autónoma')['Measure'].count().reset_index().rename(columns={'Measure': 'Count'})
+            fig1 = px.bar(
+                measures_count.sort_values('Count', ascending=False),
+                x='Comunidad Autónoma', y='Count', title='Measures per Community',
+                labels={'Count': 'Number of Measures', 'Comunidad Autónoma': 'Community'},
+                template="plotly_white"
+            )
+        else:
+            # Group by center if a community is selected
+            measures_count = df_filtered.groupby('Center')['Measure'].count().reset_index().rename(columns={'Measure': 'Count'})
+            fig1 = px.bar(
+                measures_count.sort_values('Count', ascending=False),
+                x='Center', y='Count', title=f'Measures per Center in {selected_community}',
+                labels={'Count': 'Number of Measures'},
+                template="plotly_white"
+            )
+        st.plotly_chart(fig1, use_container_width=True)
+
+        
+        # --- Chart 5: Energy Savings per community/center ---
+        st.subheader("Energy Savings Analysis")
+        # Adapt grouping based on selection
+        group_by_col = 'Center' if selected_community != 'All' else 'Comunidad Autónoma'
+        energy_savings = df_filtered.groupby(group_by_col)['Energy Saved'].sum().reset_index()
+        fig5 = px.bar(
+            energy_savings.sort_values('Energy Saved', ascending=False),
+            x=group_by_col, y='Energy Saved', title=f'Energy Savings (kWh) per {group_by_col.replace("_", " ")}',
+            labels={'Energy Saved': 'Total Energy Saved (kWh)'},
+            template="plotly_white"
+        )
+        st.plotly_chart(fig5, use_container_width=True)
+
+
+    with col2:
+        # --- Chart 6: Economic Savings Donut Chart ---
+        st.subheader("Economic Savings Analysis")
+        group_by_col = 'Center' if selected_community != 'All' else 'Comunidad Autónoma'
+        economic_savings = df_filtered.groupby(group_by_col)['Money Saved'].sum().reset_index()
+        fig6_donut = px.pie(
+            economic_savings,
+            names=group_by_col, values='Money Saved',
+            title=f'Contribution to Economic Savings by {group_by_col.replace("_", " ")}',
+            hole=0.4,
+            template="plotly_white"
+        )
+        st.plotly_chart(fig6_donut, use_container_width=True)
+
+        
+        # --- Chart 7: Investment vs. Savings Scatter Plot ---
+        st.subheader("Investment vs. Financial Savings")
+        group_by_col = 'Center' if selected_community != 'All' else 'Comunidad Autónoma'
+        financial_summary = df_filtered.groupby(group_by_col).agg(
+            Total_Investment=('Investment', 'sum'),
+            Total_Money_Saved=('Money Saved', 'sum')
+        ).reset_index()
+        fig7 = px.scatter(
+            financial_summary,
+            x='Total_Investment', y='Total_Money_Saved',
+            text=group_by_col,
+            size='Total_Investment',
+            color=group_by_col,
+            title=f'Investment vs. Money Saved per {group_by_col.replace("_", " ")}',
+            labels={'Total_Investment': 'Total Investment (€)', 'Total_Money_Saved': 'Total Money Saved (€)'},
+            template="plotly_white"
+        )
+        fig7.update_traces(textposition='top center')
+        st.plotly_chart(fig7, use_container_width=True)
+        
+    # --- Chart 4: Investment Summary Table (at the bottom for more space) ---
+    st.markdown("---")
+    st.subheader("Investment Summary")
+    group_by_col = 'Center' if selected_community != 'All' else 'Comunidad Autónoma'
+    regional_investment_summary = df_filtered.groupby(group_by_col).agg(
+        Total_Investment=('Investment', 'sum'),
+        Measure_Count=('Measure', 'count')
+    ).reset_index()
+    regional_investment_summary['Average_Investment_per_Measure'] = regional_investment_summary.apply(
+        lambda row: row['Total_Investment'] / row['Measure_Count'] if row['Measure_Count'] > 0 else 0, axis=1
+    )
+    st.dataframe(
+        regional_investment_summary,
+        use_container_width=True,
+        column_config={
+            "Total_Investment": st.column_config.NumberColumn("Total Investment (€)", format="€ %.2f"),
+            "Measure_Count": "Number of Measures",
+            "Average_Investment_per_Measure": st.column_config.NumberColumn("Avg. Investment/Measure (€)", format="€ %.2f")
+        },
+        hide_index=True
+    )
+
+
+else:
+    st.warning("Data could not be loaded. Please check the file path and try again.")
+
