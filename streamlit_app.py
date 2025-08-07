@@ -36,7 +36,7 @@ if not df.empty:
 # This block adds a 'Measure Type' column to the DataFrame based on the measure names.
 
 # Mapping of specific measures to their general category
-measure_map = {
+    measure_map = {
     # Control térmico
     'Regulación de la temperatura de consigna': 'Control térmico',
     'Sustitución de equipos de climatización': 'Control térmico',
