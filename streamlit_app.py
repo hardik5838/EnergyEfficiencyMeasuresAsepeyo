@@ -27,128 +27,124 @@ def load_data(file_path):
         st.error(f"Error: The file '{file_path}' was not found. Please make sure the file is in the correct directory.")
         return pd.DataFrame()
 
-# Provide the correct path to your CSV file
-df = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
-
-if not df.empty:
-
-
-
-   # --- Dynamic Measure Categorization & Sidebar ---
-
-# 1. Define the analysis type selector FIRST, in the main panel
-analysis_type = st.radio(
-    "Select Analysis Type for Charts",
-    ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'),
-    key='analysis_type',
-    horizontal=True, # Makes the layout cleaner
-)
-
-def categorize_by_tipo(df_in):
-    """Categorizes by the original measure types."""
-    # This function creates the 'Category' column based on measure type
-    measure_map = {
-        'Regulación de la temperatura de consigna': 'Control térmico',
-        'Sustitución de equipos de climatización': 'Control térmico',
-        'Instalación de cortina de aire': 'Control térmico',
-        'Instalación de temporizador digital': 'Control térmico',
-        'Aislamiento de tuberías': 'Control térmico',
-        'Recuperadores de calor': 'Control térmico',
-        'Optimización de la potencia contratada': 'Gestión energética',
-        'Implementación de un sistema de gestión': 'Gestión energética',
-        'Compensación del consumo de energía reactiva': 'Gestión energética',
-        'Reducción del consumo remanente': 'Gestión energética',
-        'Buenas prácticas': 'Gestión energética',
-        'Batería de condensadores': 'Gestión energética',
-        'Instalación solar fotovoltaica': 'Gestión energética',
-        'Sustitución de luminarias a LED': 'Iluminación eficiente',
-        'Instalación de regletas programables': 'Iluminación eficiente',
-        'Mejora en el control': 'Iluminación eficiente'
-    }
-    def get_type(measure):
-        for key, value in measure_map.items():
-            if key.lower() in measure.lower(): return value
-        return 'Other'
-    df_in['Category'] = df_in['Measure'].apply(get_type)
-    return df_in
-
-def categorize_by_intervention(df_in):
-    """Categorizes by the type of work required."""
-    def get_type(measure):
-        measure = measure.lower()
-        if any(word in measure for word in ["instalación", "batería", "recuperadores", "solar"]):
-            return 'New System Installation'
-        elif any(word in measure for word in ["sustitución", "cambio", "mejora", "aislamiento"]):
-            return 'Equipment Retrofit & Upgrade'
-        elif any(word in measure for word in ["prácticas", "regulación", "optimización", "reducción"]):
-            return 'Operational & Behavioral'
-        return 'Other'
-    df_in['Category'] = df_in['Measure'].apply(get_type)
-    return df_in
-
-def categorize_by_financials(df_in):
-    """Categorizes by the payback period."""
-    def get_type(payback):
-        if payback <= 0: return 'No Cost / Immediate'
-        if payback < 2: return 'Quick Wins (< 2 years)'
-        if payback <= 5: return 'Standard Projects (2-5 years)'
-        return 'Strategic Investments (> 5 years)'
-    df_in['Category'] = df_in['Pay back period'].apply(get_type)
-    return df_in
-
-def categorize_by_function(df_in):
-    """Categorizes by the relevant business function."""
-    def get_type(measure):
-        measure = measure.lower()
-        if any(word in measure for word in ["hvac", "climatización", "temperatura", "ventilación", "aislamiento", "cortina", "calor"]):
-            return 'Building Envelope & HVAC'
-        if any(word in measure for word in ["led", "iluminación", "luminarias", "eléctrico", "potencia", "reactiva", "condensadores", "regletas"]):
-            return 'Lighting & Electrical'
-        if any(word in measure for word in ["gestión", "fotovoltaica", "solar", "prácticas", "remanente"]):
-            return 'Energy Management & Strategy'
-        return 'Other'
-    df_in['Category'] = df_in['Measure'].apply(get_type)
-    return df_in
-
-# 2. Apply the selected categorization to the main DataFrame
-if analysis_type == 'Tipo de Intervención':
-    df_categorized = categorize_by_intervention(df.copy())
-elif analysis_type == 'Impacto Financiero':
-    df_categorized = categorize_by_financials(df.copy())
-elif analysis_type == 'Función de Negocio':
-    df_categorized = categorize_by_function(df.copy())
-else: # Default to 'Tipo de Medida'
-    df_categorized = categorize_by_tipo(df.copy())
-
-# 3. NOW, create the sidebar and filter the categorized data
-with st.sidebar:
-    st.title('⚡ Asepeyo Filters')
+    # Provide the correct path to your CSV file
+    df = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
     
-    # Filter by Autonomous Community
-    community_list = ['All'] + sorted(df_categorized['Comunidad Autónoma'].unique().tolist())
-    selected_community = st.selectbox('Select a Community', community_list)
-
-    # Initialize df_filtered and selected_centers
-    selected_centers = []
-    if selected_community == 'All':
-        df_filtered = df_categorized
-    else:
-        df_community_filtered = df_categorized[df_categorized['Comunidad Autónoma'] == selected_community]
+    if not df.empty:
+    
+    # 1. Define the analysis type selector FIRST, in the main panel
+    analysis_type = st.radio(
+        "Select Analysis Type for Charts",
+        ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'),
+        key='analysis_type',
+        horizontal=True, # Makes the layout cleaner
+    )
+    
+    def categorize_by_tipo(df_in):
+        """Categorizes by the original measure types."""
+        # This function creates the 'Category' column based on measure type
+        measure_map = {
+            'Regulación de la temperatura de consigna': 'Control térmico',
+            'Sustitución de equipos de climatización': 'Control térmico',
+            'Instalación de cortina de aire': 'Control térmico',
+            'Instalación de temporizador digital': 'Control térmico',
+            'Aislamiento de tuberías': 'Control térmico',
+            'Recuperadores de calor': 'Control térmico',
+            'Optimización de la potencia contratada': 'Gestión energética',
+            'Implementación de un sistema de gestión': 'Gestión energética',
+            'Compensación del consumo de energía reactiva': 'Gestión energética',
+            'Reducción del consumo remanente': 'Gestión energética',
+            'Buenas prácticas': 'Gestión energética',
+            'Batería de condensadores': 'Gestión energética',
+            'Instalación solar fotovoltaica': 'Gestión energética',
+            'Sustitución de luminarias a LED': 'Iluminación eficiente',
+            'Instalación de regletas programables': 'Iluminación eficiente',
+            'Mejora en el control': 'Iluminación eficiente'
+        }
+        def get_type(measure):
+            for key, value in measure_map.items():
+                if key.lower() in measure.lower(): return value
+            return 'Other'
+        df_in['Category'] = df_in['Measure'].apply(get_type)
+        return df_in
+    
+    def categorize_by_intervention(df_in):
+        """Categorizes by the type of work required."""
+        def get_type(measure):
+            measure = measure.lower()
+            if any(word in measure for word in ["instalación", "batería", "recuperadores", "solar"]):
+                return 'New System Installation'
+            elif any(word in measure for word in ["sustitución", "cambio", "mejora", "aislamiento"]):
+                return 'Equipment Retrofit & Upgrade'
+            elif any(word in measure for word in ["prácticas", "regulación", "optimización", "reducción"]):
+                return 'Operational & Behavioral'
+            return 'Other'
+        df_in['Category'] = df_in['Measure'].apply(get_type)
+        return df_in
+    
+    def categorize_by_financials(df_in):
+        """Categorizes by the payback period."""
+        def get_type(payback):
+            if payback <= 0: return 'No Cost / Immediate'
+            if payback < 2: return 'Quick Wins (< 2 years)'
+            if payback <= 5: return 'Standard Projects (2-5 years)'
+            return 'Strategic Investments (> 5 years)'
+        df_in['Category'] = df_in['Pay back period'].apply(get_type)
+        return df_in
+    
+    def categorize_by_function(df_in):
+        """Categorizes by the relevant business function."""
+        def get_type(measure):
+            measure = measure.lower()
+            if any(word in measure for word in ["hvac", "climatización", "temperatura", "ventilación", "aislamiento", "cortina", "calor"]):
+                return 'Building Envelope & HVAC'
+            if any(word in measure for word in ["led", "iluminación", "luminarias", "eléctrico", "potencia", "reactiva", "condensadores", "regletas"]):
+                return 'Lighting & Electrical'
+            if any(word in measure for word in ["gestión", "fotovoltaica", "solar", "prácticas", "remanente"]):
+                return 'Energy Management & Strategy'
+            return 'Other'
+        df_in['Category'] = df_in['Measure'].apply(get_type)
+        return df_in
+    
+    # 2. Apply the selected categorization to the main DataFrame
+    if analysis_type == 'Tipo de Intervención':
+        df_categorized = categorize_by_intervention(df.copy())
+    elif analysis_type == 'Impacto Financiero':
+        df_categorized = categorize_by_financials(df.copy())
+    elif analysis_type == 'Función de Negocio':
+        df_categorized = categorize_by_function(df.copy())
+    else: # Default to 'Tipo de Medida'
+        df_categorized = categorize_by_tipo(df.copy())
+    
+    # 3. NOW, create the sidebar and filter the categorized data
+    with st.sidebar:
+        st.title('⚡ Asepeyo Filters')
         
-        # Dependent MULTI-SELECT for Center
-        center_list = sorted(df_community_filtered['Center'].unique().tolist())
-        selected_centers = st.multiselect(
-            'Select Centers to Compare', 
-            center_list, 
-            default=center_list
-        )
-
-        # Filter by the list of selected centers
-        if selected_centers:
-            df_filtered = df_community_filtered[df_community_filtered['Center'].isin(selected_centers)]
-        else:
-            df_filtered = pd.DataFrame(columns=df_categorized.columns)
+        # Filter by Autonomous Community
+        community_list = ['All'] + sorted(df_categorized['Comunidad Autónoma'].unique().tolist())
+        selected_community = st.selectbox('Select a Community', community_list)
     
+        # Initialize df_filtered and selected_centers
+        selected_centers = []
+        if selected_community == 'All':
+            df_filtered = df_categorized
+        else:
+            df_community_filtered = df_categorized[df_categorized['Comunidad Autónoma'] == selected_community]
+            
+            # Dependent MULTI-SELECT for Center
+            center_list = sorted(df_community_filtered['Center'].unique().tolist())
+            selected_centers = st.multiselect(
+                'Select Centers to Compare', 
+                center_list, 
+                default=center_list
+            )
+    
+            # Filter by the list of selected centers
+            if selected_centers:
+                df_filtered = df_community_filtered[df_community_filtered['Center'].isin(selected_centers)]
+            else:
+                df_filtered = pd.DataFrame(columns=df_categorized.columns)
+        
     # Main Panel with Dynamic Title
     st.title("Energy Efficiency Analysis")
     
