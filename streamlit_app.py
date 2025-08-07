@@ -112,8 +112,12 @@ if not df.empty:
             else:
                 # If no center is selected, show an empty dataframe
                 df_filtered = pd.DataFrame(columns=df.columns)
-
-
+        st.markdown("---") # Adds a visual separator
+        analysis_type = st.radio(
+            "Select Analysis Type for Charts",
+            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'),
+            key='analysis_type'
+        )
 
     
     # Main Panel with Dynamic Title
