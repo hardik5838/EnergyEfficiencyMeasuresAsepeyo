@@ -36,7 +36,7 @@ def load_data(file_path):
         return pd.DataFrame() # Return empty DataFrame on error
 
 # Provide the correct path to your CSV file
-df = load_data('2025 Energy Audit summary - Sheet1 (1).csv')
+df = load_data('Data/2025 Energy Audit summary - Sheet1 (1).csv')
 
 if not df.empty:
 
