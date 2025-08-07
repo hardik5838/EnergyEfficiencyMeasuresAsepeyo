@@ -183,44 +183,62 @@ if not df.empty:
         col1, col2 = st.columns(2, gap="large")
 
         with col1:
-            # --- Chart 1: Dynamic Measure Counts (Stacked by Selected Type) ---
-            st.subheader(f"Measure Counts by {analysis_type}")
             group_by_col = 'Center' if selected_community != 'All' else 'Comunidad Autónoma'
-
-            # Group by the primary column AND the new dynamic 'Category' column
+            
+            # --- Chart 1: Dynamic Measure Counts with Percentage Toggle ---
+            st.subheader(f"Measure Counts by {analysis_type}")
             if 'Category' in df_filtered.columns:
-                measures_by_type = df_filtered.groupby([group_by_col, 'Category']).size().reset_index(
-                    name='Count')
-
-                fig1 = px.bar(
-                    measures_by_type,
-                    x=group_by_col,
-                    y='Count',
-                    color='Category',  # This now correctly uses the dynamic category
-                    title=f'Measure Types per {group_by_col.replace("_", " ")}',
-                    template="plotly_white"
-                )
-
-                # Improve layout for better readability
-                fig1.update_layout(
-                    xaxis_title=group_by_col.replace("_", " ").title(),
-                    yaxis_title="Number of Measures",
-                    legend_title=analysis_type  # The legend title is also dynamic
-                )
+                if show_percentage:
+                    # Calculate percentages
+                    measures_by_type = df_filtered.groupby([group_by_col, 'Category']).size().unstack(fill_value=0)
+                    measures_pct = measures_by_type.apply(lambda x: x * 100 / x.sum(), axis=1).stack().reset_index(name='Percentage')
+                    fig1 = px.bar(
+                        measures_pct, x=group_by_col, y='Percentage', color='Category',
+                        title=f'% of Measure Types per {group_by_col.replace("_", " ")}',
+                        template="plotly_white"
+                    )
+                    fig1.update_yaxes(title_text="Percentage of Measures (%)")
+                else:
+                    # Show absolute counts
+                    measures_by_type = df_filtered.groupby([group_by_col, 'Category']).size().reset_index(name='Count')
+                    fig1 = px.bar(
+                        measures_by_type, x=group_by_col, y='Count', color='Category',
+                        title=f'Measure Counts per {group_by_col.replace("_", " ")}',
+                        template="plotly_white"
+                    )
+                    fig1.update_yaxes(title_text="Number of Measures")
+        
+                fig1.update_layout(xaxis_title=group_by_col.replace("_", " ").title(), legend_title=analysis_type)
                 st.plotly_chart(fig1, use_container_width=True)
             else:
                 st.warning("Could not generate chart. 'Category' column not found.")
-            # --- Chart 5: Energy Savings per community/center ---
+        
+            # --- Chart 5: Energy Savings Analysis with Percentage Toggle ---
             st.subheader("Energy Savings Analysis")
-            energy_savings = df_filtered.groupby(group_by_col)['Energy Saved'].sum().reset_index()
-            fig5 = px.bar(
-                energy_savings.sort_values('Energy Saved', ascending=False),
-                x=group_by_col, y='Energy Saved', title=f'Energy Savings (kWh) per {group_by_col.replace("_", " ")}',
-                labels={'Energy Saved': 'Total Energy Saved (kWh)'},
-                template="plotly_white"
-            )
+            if show_percentage:
+                # Calculate percentage of total savings
+                total_savings = df_filtered['Energy Saved'].sum()
+                energy_savings = df_filtered.groupby(group_by_col)['Energy Saved'].sum().reset_index()
+                energy_savings['Percentage'] = (energy_savings['Energy Saved'] / total_savings) * 100 if total_savings > 0 else 0
+                fig5 = px.bar(
+                    energy_savings.sort_values('Energy Saved', ascending=False),
+                    x=group_by_col, y='Percentage', title=f'% Contribution to Energy Savings',
+                    template="plotly_white"
+                )
+                fig5.update_yaxes(title_text="Contribution to Total Savings (%)")
+            else:
+                # Show absolute savings
+                energy_savings = df_filtered.groupby(group_by_col)['Energy Saved'].sum().reset_index()
+                fig5 = px.bar(
+                    energy_savings.sort_values('Energy Saved', ascending=False),
+                    x=group_by_col, y='Energy Saved', title=f'Energy Savings (kWh) per {group_by_col.replace("_", " ")}',
+                    labels={'Energy Saved': 'Total Energy Saved (kWh)'},
+                    template="plotly_white"
+                )
+                fig5.update_yaxes(title_text="Energy Saved (kWh)")
+                
+            fig5.update_layout(xaxis_title=group_by_col.replace("_", " ").title())
             st.plotly_chart(fig5, use_container_width=True)
-
 
         with col2:
             # --- Chart 6: Economic Savings Donut Chart ---
