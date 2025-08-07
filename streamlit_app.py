@@ -30,7 +30,7 @@ def load_data(file_path):
     # Provide the correct path to your CSV file
     df = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
     
-    if not df.empty:
+if not df.empty:
     
     # 1. Define the analysis type selector FIRST, in the main panel
     analysis_type = st.radio(
