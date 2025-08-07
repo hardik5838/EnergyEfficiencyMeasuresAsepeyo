@@ -1,11 +1,9 @@
-#######################
 # Import libraries
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import altair as alt
 
-#######################
 # Page configuration
 st.set_page_config(
     page_title="Asepeyo Energy Efficiency Dashboard",
@@ -14,10 +12,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Set Altair theme to light for better contrast
-alt.themes.enable("default")
-
-#######################
 # Load and process data
 @st.cache_data
 def load_data(file_path):
@@ -38,7 +32,57 @@ df = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
 
 if not df.empty:
 
-    #######################
+# --- Categorize Measures ---
+# This block adds a 'Measure Type' column to the DataFrame based on the measure names.
+
+# Mapping of specific measures to their general category
+measure_map = {
+    # Control térmico
+    'Regulación de la temperatura de consigna': 'Control térmico',
+    'Sustitución de equipos de climatización': 'Control térmico',
+    'Instalación de cortina de aire': 'Control térmico',
+    'Instalación cortina de aire en puerta de entrada': 'Control térmico',
+    'Instalación de temporizador digital': 'Control térmico',
+    'Aislamiento de tuberías de climatización': 'Control térmico',
+    'Regulación de ventilación mediante sonda CO2': 'Control térmico',
+    'Recuperadores de calor': 'Control térmico',
+    
+    # Gestión energética
+    'Optimización de la potencia contratada': 'Gestión energética',
+    'Implementación de un sistema de gestión energética': 'Gestión energética',
+    'Sistema de Gestión Energética': 'Gestión energética',
+    'Compensación del consumo de energía reactiva': 'Gestión energética',
+    'Reducción del consumo remanente': 'Gestión energética',
+    'Reducción de consumo remanente': 'Gestión energética',
+    'Buenas prácticas': 'Gestión energética',
+    'Promover la cultura energética': 'Gestión energética',
+    'Batería de condensadores': 'Gestión energética',
+    'Instalación solar fotovoltaica': 'Gestión energética',
+    'Instalación Solar térmica': 'Gestión energética',
+    
+    # Iluminación eficiente
+    'Sustitución de luminarias a LED': 'Iluminación eficiente',
+    'Cambio Iluminacion LED': 'Iluminación eficiente',
+    'Instalación de regletas programables': 'Iluminación eficiente',
+    'Instalación regletas programables': 'Iluminación eficiente',
+    'Control de renovación de aire mediante sonda CO2': 'Iluminación eficiente',
+    'Mejora en el control actual de la iluminación': 'Iluminación eficiente',
+    'Mejora en el control de la iluminación': 'Iluminación eficiente'
+}
+
+# Function to find the category for a given measure text
+def get_measure_type(measure_text):
+    for key, value in measure_map.items():
+        if key.lower() in measure_text.lower():
+            return value
+    return 'Other' # Default category if no match is found
+
+# Apply the function to create the new column
+if not df.empty:
+    df['Measure Type'] = df['Measure'].apply(get_measure_type)   
+    
+    
+    
     # Sidebar Filters with Multi-Select
     with st.sidebar:
         st.title('⚡ Asepeyo Energy Dashboard')
@@ -70,9 +114,12 @@ if not df.empty:
                 df_filtered = pd.DataFrame(columns=df.columns)
 
 
-    #######################
+
+    
     # Main Panel with Dynamic Title
     st.title("Energy Efficiency Analysis")
+    
+    
     # Create a dynamic subheader
     if selected_community == 'All':
         st.header("Showing data for All Communities")
@@ -83,6 +130,7 @@ if not df.empty:
     else:
         st.header(f"Comparing {len(selected_centers)} centers in {selected_community}")
 
+    
     # --- Key Performance Indicators (KPIs) ---
     total_investment = df_filtered['Investment'].sum()
     total_money_saved = df_filtered['Money Saved'].sum()
@@ -108,14 +156,34 @@ if not df.empty:
         col1, col2 = st.columns(2, gap="large")
 
         with col1:
-            # --- Chart 1: Measures required per community/center ---
-            st.subheader("Measure Counts")
+            # --- Chart 1: Measures required per community/center (Stacked by Type) ---
+            st.subheader("Measure Counts by Type")
             group_by_col = 'Center' if selected_community != 'All' else 'Comunidad Autónoma'
-            measures_count = df_filtered.groupby(group_by_col)['Measure'].count().reset_index().rename(columns={'Measure': 'Count'})
+            
+            # Group by the primary column AND the new Measure Type to get counts for each segment
+            measures_by_type = df_filtered.groupby([group_by_col, 'Measure Type']).size().reset_index(name='Count')
+            
             fig1 = px.bar(
-                measures_count.sort_values('Count', ascending=False),
-                x=group_by_col, y='Count', title=f'Measures per {group_by_col.replace("_", " ")}',
-                template="plotly_white"
+                measures_by_type,
+                x=group_by_col,
+                y='Count',
+                color='Measure Type', # This creates the stacked segments
+                title=f'Measure Types per {group_by_col.replace("_", " ")}',
+                template="plotly_white",
+                # Define custom colors for consistency and clarity
+                color_discrete_map={
+                    'Control térmico': '#0072B2',       # Blue
+                    'Gestión energética': '#009E73',  # Green
+                    'Iluminación eficiente': '#F0E442', # Yellow
+                    'Other': '#D55E00'                  # Orange
+                }
+            )
+            
+            # Improve layout for better readability
+            fig1.update_layout(
+                xaxis_title=group_by_col.replace("_", " ").title(),
+                yaxis_title="Number of Measures",
+                legend_title="Measure Type"
             )
             st.plotly_chart(fig1, use_container_width=True)
 
