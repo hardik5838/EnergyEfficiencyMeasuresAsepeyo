@@ -34,7 +34,13 @@ df = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
 
 if not df.empty:
 
-   
+    # 1. Define the analysis type selector FIRST, in the main panel
+        analysis_type = st.radio(
+            "Select Analysis Type for Charts",
+            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'),
+            key='analysis_type',
+            horizontal=True,  # Makes the layout cleaner
+        )
 
     def categorize_by_tipo(df_in):
         """Categorizes by the original measure types."""
@@ -115,13 +121,7 @@ if not df.empty:
     # 3. NOW, create the sidebar and filter the categorized data
     with st.sidebar:
         st.title('⚡ Asepeyo Filters')
- # 1. Define the analysis type selector FIRST, in the main panel
-        analysis_type = st.radio(
-            "Select Analysis Type for Charts",
-            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'),
-            key='analysis_type',
-            horizontal=True,  # Makes the layout cleaner
-        )
+
         # Filter by Autonomous Community
         community_list = ['All'] + sorted(df_categorized['Comunidad Autónoma'].unique().tolist())
         selected_community = st.selectbox('Select a Community', community_list)
