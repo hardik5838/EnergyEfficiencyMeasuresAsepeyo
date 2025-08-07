@@ -189,37 +189,29 @@ if not df.empty:
 
         with col1:
             # --- Chart 1: Measures required per community/center (Stacked by Type) ---
-            st.subheader("Measure Counts by Type")
+            # --- Chart 1: Dynamic Measure Counts (Stacked by Selected Type) ---
+            st.subheader(f"Measure Counts by {analysis_type}")
             group_by_col = 'Center' if selected_community != 'All' else 'Comunidad Autónoma'
             
-            # Group by the primary column AND the new Measure Type to get counts for each segment
-            measures_by_type = df_filtered.groupby([group_by_col, 'Measure Type']).size().reset_index(name='Count')
+            # Group by the primary column AND the new dynamic 'Category' column
+            measures_by_type = df_filtered.groupby([group_by_col, 'Category']).size().reset_index(name='Count')
             
             fig1 = px.bar(
                 measures_by_type,
                 x=group_by_col,
                 y='Count',
-                color='Measure Type', # This creates the stacked segments
+                color='Category', # This now uses the dynamic category
                 title=f'Measure Types per {group_by_col.replace("_", " ")}',
-                template="plotly_white",
-                # Define custom colors for consistency and clarity
-                color_discrete_map={
-                    'Control térmico': '#0072B2',       # Blue
-                    'Gestión energética': '#009E73',  # Green
-                    'Iluminación eficiente': '#F0E442', # Yellow
-                    'Other': '#D55E00'                  # Orange
-                }
+                template="plotly_white"
             )
             
             # Improve layout for better readability
             fig1.update_layout(
                 xaxis_title=group_by_col.replace("_", " ").title(),
                 yaxis_title="Number of Measures",
-                legend_title="Measure Type"
+                legend_title=analysis_type # The legend title is also dynamic
             )
             st.plotly_chart(fig1, use_container_width=True)
-
-            
             # --- Chart 5: Energy Savings per community/center ---
             st.subheader("Energy Savings Analysis")
             energy_savings = df_filtered.groupby(group_by_col)['Energy Saved'].sum().reset_index()
