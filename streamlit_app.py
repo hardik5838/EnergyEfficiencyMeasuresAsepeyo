@@ -33,54 +33,83 @@ df = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
 if not df.empty:
 
 # --- Categorize Measures ---
-# This block adds a 'Measure Type' column to the DataFrame based on the measure names.
+# --- Dynamic Measure Categorization ---
 
-# Mapping of specific measures to their general category
+def categorize_by_tipo(df_in):
+    """Categorizes by the original measure types."""
     measure_map = {
-    # Control térmico
-    'Regulación de la temperatura de consigna': 'Control térmico',
-    'Sustitución de equipos de climatización': 'Control térmico',
-    'Instalación de cortina de aire': 'Control térmico',
-    'Instalación cortina de aire en puerta de entrada': 'Control térmico',
-    'Instalación de temporizador digital': 'Control térmico',
-    'Aislamiento de tuberías de climatización': 'Control térmico',
-    'Regulación de ventilación mediante sonda CO2': 'Control térmico',
-    'Recuperadores de calor': 'Control térmico',
-    
-    # Gestión energética
-    'Optimización de la potencia contratada': 'Gestión energética',
-    'Implementación de un sistema de gestión energética': 'Gestión energética',
-    'Sistema de Gestión Energética': 'Gestión energética',
-    'Compensación del consumo de energía reactiva': 'Gestión energética',
-    'Reducción del consumo remanente': 'Gestión energética',
-    'Reducción de consumo remanente': 'Gestión energética',
-    'Buenas prácticas': 'Gestión energética',
-    'Promover la cultura energética': 'Gestión energética',
-    'Batería de condensadores': 'Gestión energética',
-    'Instalación solar fotovoltaica': 'Gestión energética',
-    'Instalación Solar térmica': 'Gestión energética',
-    
-    # Iluminación eficiente
-    'Sustitución de luminarias a LED': 'Iluminación eficiente',
-    'Cambio Iluminacion LED': 'Iluminación eficiente',
-    'Instalación de regletas programables': 'Iluminación eficiente',
-    'Instalación regletas programables': 'Iluminación eficiente',
-    'Control de renovación de aire mediante sonda CO2': 'Iluminación eficiente',
-    'Mejora en el control actual de la iluminación': 'Iluminación eficiente',
-    'Mejora en el control de la iluminación': 'Iluminación eficiente'
-}
+        'Regulación de la temperatura de consigna': 'Control térmico',
+        'Sustitución de equipos de climatización': 'Control térmico',
+        'Instalación de cortina de aire': 'Control térmico',
+        'Instalación de temporizador digital': 'Control térmico',
+        'Aislamiento de tuberías': 'Control térmico',
+        'Recuperadores de calor': 'Control térmico',
+        'Optimización de la potencia contratada': 'Gestión energética',
+        'Implementación de un sistema de gestión': 'Gestión energética',
+        'Compensación del consumo de energía reactiva': 'Gestión energética',
+        'Reducción del consumo remanente': 'Gestión energética',
+        'Buenas prácticas': 'Gestión energética',
+        'Batería de condensadores': 'Gestión energética',
+        'Instalación solar fotovoltaica': 'Gestión energética',
+        'Sustitución de luminarias a LED': 'Iluminación eficiente',
+        'Instalación de regletas programables': 'Iluminación eficiente',
+        'Mejora en el control': 'Iluminación eficiente'
+    }
+    def get_type(measure):
+        for key, value in measure_map.items():
+            if key.lower() in measure.lower(): return value
+        return 'Other'
+    df_in['Category'] = df_in['Measure'].apply(get_type)
+    return df_in
 
-# Function to find the category for a given measure text
-def get_measure_type(measure_text):
-    for key, value in measure_map.items():
-        if key.lower() in measure_text.lower():
-            return value
-    return 'Other' # Default category if no match is found
+def categorize_by_intervention(df_in):
+    """Categorizes by the type of work required."""
+    def get_type(measure):
+        measure = measure.lower()
+        if any(word in measure for word in ["instalación", "batería", "recuperadores"]):
+            return 'New System Installation'
+        elif any(word in measure for word in ["sustitución", "cambio", "mejora", "aislamiento"]):
+            return 'Equipment Retrofit & Upgrade'
+        elif any(word in measure for word in ["prácticas", "regulación", "optimización", "reducción"]):
+            return 'Operational & Behavioral'
+        return 'Other'
+    df_in['Category'] = df_in['Measure'].apply(get_type)
+    return df_in
 
-# Apply the function to create the new column
+def categorize_by_financials(df_in):
+    """Categorizes by the payback period."""
+    def get_type(payback):
+        if payback <= 0: return 'No Cost / Immediate'
+        if payback < 2: return 'Quick Wins (< 2 years)'
+        if payback <= 5: return 'Standard Projects (2-5 years)'
+        return 'Strategic Investments (> 5 years)'
+    df_in['Category'] = df_in['Pay back period'].apply(get_type)
+    return df_in
+
+def categorize_by_function(df_in):
+    """Categorizes by the relevant business function."""
+    def get_type(measure):
+        measure = measure.lower()
+        if any(word in measure for word in ["hvac", "climatización", "temperatura", "ventilación", "aislamiento", "cortina"]):
+            return 'Building Envelope & HVAC'
+        if any(word in measure for word in ["led", "iluminación", "luminarias", "eléctrico", "potencia", "reactiva", "condensadores"]):
+            return 'Lighting & Electrical'
+        if any(word in measure for word in ["gestión", "fotovoltaica", "solar", "prácticas"]):
+            return 'Energy Management & Strategy'
+        return 'Other'
+    df_in['Category'] = df_in['Measure'].apply(get_type)
+    return df_in
+
+# Apply the selected categorization
 if not df.empty:
-    df['Measure Type'] = df['Measure'].apply(get_measure_type)   
-    
+    if analysis_type == 'Tipo de Intervención':
+        df = categorize_by_intervention(df)
+    elif analysis_type == 'Impacto Financiero':
+        df = categorize_by_financials(df)
+    elif analysis_type == 'Función de Negocio':
+        df = categorize_by_function(df)
+    else: # Default to 'Tipo de Medida'
+        df = categorize_by_tipo(df)
     
     
     # Sidebar Filters with Multi-Select
