@@ -34,8 +34,6 @@ df = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
 
 if not df.empty:
     # --- Sidebar and Data Processing ---
-
-    # 1. Define all sidebar widgets to get user input
     with st.sidebar:
         st.title('⚡ Asepeyo Filters')
         
@@ -44,7 +42,8 @@ if not df.empty:
             ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'),
             key='analysis_type'
         )
-    
+           
+        show_percentage = st.toggle('Show percentage values', key='show_percentage')
         st.markdown("---")
         
         # The community and center filters will be dependent on the categorized data
