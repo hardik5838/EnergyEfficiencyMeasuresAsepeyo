@@ -96,7 +96,7 @@ if not df_original.empty:
         detailed_view = st.toggle('Show Detailed Center View', key='detailed_view')
         
         community_list = sorted(df_original['Comunidad Autónoma'].unique().tolist())
-        if st.button("All Communities", use_container_width=True):
+        if st.button("All", use_container_width=True):
             st.session_state.selected_communities = community_list
         
         selected_communities = st.multiselect('Select Communities', community_list, default=st.session_state.selected_communities)
@@ -109,10 +109,8 @@ if not df_original.empty:
                     st.session_state.selected_centers = available_centers
                 
                 st.write("Manage Center Selection:")
-                if st.button("All Centers", use_container_width=True):
+                if st.button("All", use_container_width=True):
                     st.session_state.selected_centers = available_centers
-                if st.button("Deselect Centers", use_container_width=True):
-                    st.session_state.selected_centers = []
 
                 selected_centers = st.multiselect('Select Centers', available_centers, default=st.session_state.selected_centers)
                 st.session_state.selected_centers = selected_centers
