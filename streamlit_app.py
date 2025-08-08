@@ -24,11 +24,11 @@ def load_data(file_path):
         df.fillna(0, inplace=True)
         return df
     except FileNotFoundError:
-        st.error(f"Error: The data file was not found. Please ensure 'Data/2025 Energy Audit summary - Sheet1.csv' exists.")
+        st.error(f"Error: The data file was not found. Please ensure '2025 Energy Audit summary - Sheet1 (1).csv' exists.")
         return pd.DataFrame()
 
 # --- Main Application Logic ---
-df_original = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
+df_original = load_data('2025 Energy Audit summary - Sheet1 (1).csv')
 
 if not df_original.empty:
 
@@ -107,18 +107,20 @@ if not df_original.empty:
         if selected_communities:
             available_centers = sorted(df_original[df_original['Comunidad Autónoma'].isin(selected_communities)]['Center'].unique().tolist())
             
-            st.write("Manage Center Selection:")
-            col1, col2 = st.columns(2)
-            if col1.button("Select All", use_container_width=True):
-                st.session_state.selected_centers = available_centers
-            if col2.button("Deselect All", use_container_width=True):
-                st.session_state.selected_centers = []
-            
             # This check resets center selection if the available centers change
             if not all(center in available_centers for center in st.session_state.selected_centers):
                 st.session_state.selected_centers = available_centers
 
-            selected_centers = st.multiselect('Select Centers', available_centers, default=st.session_state.selected_centers)
+            # --- "All" button and Center Selection ---
+            st.write("Manage Center Selection:")
+            if st.button("All", key='select_all_centers'):
+                st.session_state.selected_centers = available_centers
+
+            selected_centers = st.multiselect(
+                'Select Centers to Compare', 
+                available_centers, 
+                default=st.session_state.selected_centers
+            )
             st.session_state.selected_centers = selected_centers
         else:
             selected_centers = []
@@ -145,13 +147,11 @@ if not df_original.empty:
 
     # Header Logic
     if not selected_communities:
-        st.warning("Please select at least one community from the sidebar to view data.")
-    elif len(selected_communities) == 1 and len(selected_centers) == 1:
-        st.header(f"Data for: {selected_centers[0]}")
-    elif len(selected_communities) > 0 and not selected_centers:
-        st.warning(f"Please select at least one center in the chosen community/communities.")
+        st.warning("Please select at least one community to view data.")
+    elif not selected_centers:
+        st.warning(f"Please select at least one center.")
     else:
-        st.header(f"Comparing {len(selected_centers)} centers in {len(selected_communities)} communities")
+        st.header(f"Comparing {len(selected_centers)} centers across {len(selected_communities)} communities")
 
     # KPI Calculation
     total_investment = df_filtered['Investment'].sum()
@@ -168,11 +168,8 @@ if not df_original.empty:
 
     # Chart Rendering
     if not df_filtered.empty:
-        # Determine grouping level based on selections
-        if len(selected_communities) > 1:
-            group_by_col = 'Comunidad Autónoma'
-        else:
-            group_by_col = 'Center'
+        # ** FIX: The grouping column is now always 'Center' to ensure detailed comparison **
+        group_by_col = 'Center'
         
         col1, col2 = st.columns(2, gap="large")
 
@@ -182,13 +179,13 @@ if not df_original.empty:
                 if show_percentage:
                     measures_by_type = df_filtered.groupby([group_by_col, 'Category']).size().unstack(fill_value=0)
                     measures_pct = measures_by_type.apply(lambda x: x * 100 / x.sum(), axis=1).stack().reset_index(name='Percentage')
-                    fig1 = px.bar(measures_pct, x=group_by_col, y='Percentage', color='Category', title=f'% of Measure Types per {group_by_col.replace("_", " ")}')
+                    fig1 = px.bar(measures_pct, x=group_by_col, y='Percentage', color='Category', title=f'% of Measure Types per {group_by_col}')
                     fig1.update_yaxes(title_text="Percentage of Measures (%)")
                 else:
                     measures_by_type = df_filtered.groupby([group_by_col, 'Category']).size().reset_index(name='Count')
-                    fig1 = px.bar(measures_by_type, x=group_by_col, y='Count', color='Category', title=f'Measure Counts per {group_by_col.replace("_", " ")}')
+                    fig1 = px.bar(measures_by_type, x=group_by_col, y='Count', color='Category', title=f'Measure Counts per {group_by_col}')
                     fig1.update_yaxes(title_text="Number of Measures")
-                fig1.update_layout(xaxis_title=group_by_col.replace("_", " ").title(), legend_title=analysis_type, template="plotly_white")
+                fig1.update_layout(xaxis_title=group_by_col, legend_title=analysis_type, template="plotly_white")
                 st.plotly_chart(fig1, use_container_width=True)
 
             st.subheader("Energy Savings Analysis")
@@ -200,21 +197,21 @@ if not df_original.empty:
                 fig5.update_yaxes(title_text="Contribution to Total Savings (%)")
             else:
                 energy_savings = df_filtered.groupby(group_by_col)['Energy Saved'].sum().reset_index()
-                fig5 = px.bar(energy_savings.sort_values('Energy Saved', ascending=False), x=group_by_col, y='Energy Saved', title=f'Energy Savings (kWh) per {group_by_col.replace("_", " ")}')
+                fig5 = px.bar(energy_savings.sort_values('Energy Saved', ascending=False), x=group_by_col, y='Energy Saved', title=f'Energy Savings (kWh) per {group_by_col}')
                 fig5.update_yaxes(title_text="Energy Saved (kWh)")
-            fig5.update_layout(xaxis_title=group_by_col.replace("_", " ").title(), template="plotly_white")
+            fig5.update_layout(xaxis_title=group_by_col, template="plotly_white")
             st.plotly_chart(fig5, use_container_width=True)
 
         with col2:
             st.subheader("Economic Savings Analysis")
             economic_savings = df_filtered.groupby(group_by_col)['Money Saved'].sum().reset_index()
-            fig6 = px.pie(economic_savings, names=group_by_col, values='Money Saved', title=f'Contribution to Economic Savings by {group_by_col.replace("_", " ")}', hole=0.4)
+            fig6 = px.pie(economic_savings, names=group_by_col, values='Money Saved', title=f'Contribution to Economic Savings by {group_by_col}', hole=0.4)
             fig6.update_layout(template="plotly_white")
             st.plotly_chart(fig6, use_container_width=True)
             
             st.subheader("Investment vs. Financial Savings")
             financial_summary = df_filtered.groupby(group_by_col).agg(Total_Investment=('Investment', 'sum'), Total_Money_Saved=('Money Saved', 'sum')).reset_index()
-            fig7 = px.scatter(financial_summary, x='Total_Investment', y='Total_Money_Saved', text=group_by_col, size='Total_Investment', color=group_by_col, title=f'Investment vs. Money Saved per {group_by_col.replace("_", " ")}')
+            fig7 = px.scatter(financial_summary, x='Total_Investment', y='Total_Money_Saved', text=group_by_col, size='Total_Investment', color=group_by_col, title=f'Investment vs. Money Saved per {group_by_col}')
             fig7.update_traces(textposition='top center')
             fig7.update_layout(template="plotly_white")
             st.plotly_chart(fig7, use_container_width=True)
@@ -253,7 +250,7 @@ if not df_original.empty:
                   value=sankey_data['Total_Investment'],
                   hovertemplate='Investment from %{source.label} to %{target.label}: €%{value:,.0f}<br>' + 'Resulting Savings: €' + sankey_data['Total_Savings'].map('{:,.0f}'.format) + '<extra></extra>'
                 ))])
-            fig_sankey.update_layout(title_text="Flow from Measure Category to Location by Investment", font_size=12)
+            fig_sankey.update_layout(title_text="Flow from Measure Category to Center by Investment", font_size=12)
             st.plotly_chart(fig_sankey, use_container_width=True)
 
 else:
