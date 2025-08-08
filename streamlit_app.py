@@ -28,7 +28,7 @@ def load_data(file_path):
         return pd.DataFrame()
 
 # --- Main Application Logic ---
-df_original = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
+df_original = load_data('2025 Energy Audit summary - Sheet1 (1).csv')
 
 if not df_original.empty:
 
@@ -96,7 +96,7 @@ if not df_original.empty:
         detailed_view = st.toggle('Show Detailed Center View', key='detailed_view')
         
         community_list = sorted(df_original['Comunidad Autónoma'].unique().tolist())
-        if st.button("All", use_container_width=True):
+        if st.button("All Communities", use_container_width=True):
             st.session_state.selected_communities = community_list
         
         selected_communities = st.multiselect('Select Communities', community_list, default=st.session_state.selected_communities)
@@ -109,8 +109,10 @@ if not df_original.empty:
                     st.session_state.selected_centers = available_centers
                 
                 st.write("Manage Center Selection:")
-                if st.button("All", use_container_width=True):
+                if st.button("All Centers", use_container_width=True):
                     st.session_state.selected_centers = available_centers
+                if st.button("Deselect Centers", use_container_width=True):
+                    st.session_state.selected_centers = []
 
                 selected_centers = st.multiselect('Select Centers', available_centers, default=st.session_state.selected_centers)
                 st.session_state.selected_centers = selected_centers
@@ -216,43 +218,7 @@ if not df_original.empty:
             st.plotly_chart(fig7, use_container_width=True)
         
         # ... (Advanced Analysis Section remains the same) ...
-        # Advanced Analysis Section
-        st.markdown("---")
-        st.header("Advanced Analysis")
-        adv_col1, adv_col2 = st.columns(2, gap="large")
 
-        with adv_col1:
-            st.subheader("Investment Efficacy")
-            plot_data = df_filtered[(df_filtered['Investment'] > 0) & (df_filtered['Money Saved'] > 0)]
-            if not plot_data.empty:
-                fig_bubble = px.scatter(plot_data, x='Investment', y='Money Saved', size='Energy Saved', color='Category', hover_name='Measure', size_max=60, title="Investment vs. Annual Savings")
-                fig_bubble.update_layout(xaxis_title="Investment (€)", yaxis_title="Annual Money Saved (€)", legend_title=analysis_type, template="plotly_white")
-                st.plotly_chart(fig_bubble, use_container_width=True)
-
-        with adv_col2:
-            st.subheader("Project Payback Distribution")
-            payback_data = df_filtered[df_filtered['Pay back period'] > 0]
-            if not payback_data.empty:
-                fig_hist = px.histogram(payback_data, x='Pay back period', nbins=20, title="Distribution of Payback Periods")
-                fig_hist.update_layout(xaxis_title="Payback Period (Years)", yaxis_title="Number of Measures", template="plotly_white")
-                st.plotly_chart(fig_hist, use_container_width=True)
-
-        st.markdown("---")
-        st.subheader("Investment & Savings Flow (Sankey Diagram)")
-        sankey_data = df_filtered.groupby(['Category', group_by_col]).agg(Total_Investment=('Investment', 'sum'), Total_Savings=('Money Saved', 'sum')).reset_index()
-        if not sankey_data.empty and sankey_data['Total_Investment'].sum() > 0:
-            all_nodes = list(pd.concat([sankey_data['Category'], sankey_data[group_by_col]]).unique())
-            fig_sankey = go.Figure(data=[go.Sankey(
-                node=dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=all_nodes),
-                link=dict(
-                  source=[all_nodes.index(cat) for cat in sankey_data['Category']],
-                  target=[all_nodes.index(center) for center in sankey_data[group_by_col]],
-                  value=sankey_data['Total_Investment'],
-                  hovertemplate='Investment from %{source.label} to %{target.label}: €%{value:,.0f}<br>' + 'Resulting Savings: €' + sankey_data['Total_Savings'].map('{:,.0f}'.format) + '<extra></extra>'
-                ))])
-            fig_sankey.update_layout(title_text=f"Flow from Category to {group_by_col} by Investment", font_size=12)
-            st.plotly_chart(fig_sankey, use_container_width=True)
-
-else:
-    st.warning("Data could not be loaded. Please check the file path and try again.")
-    
+    else:
+        st.info("No data available for the current filter selection.")
+        
