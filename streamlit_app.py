@@ -27,7 +27,129 @@ def load_data(file_path):
         st.error(f"Error: The file '{file_path}' was not found. Please make sure the file is in the correct directory.")
         return pd.DataFrame()
 
+# --- Sidebar and Data Processing ---
 
+# 1. Initialize session state to remember selections. This runs first.
+if 'selected_centers' not in st.session_state:
+    st.session_state.selected_centers = []
+
+# 2. Define all categorization functions. They don't depend on any filters.
+def categorize_by_tipo(df_in):
+    """Categorizes by the original measure types."""
+    measure_map = {
+        'Regulación de la temperatura de consigna': 'Control térmico', 'Sustitución de equipos de climatización': 'Control térmico',
+        'Instalación de cortina de aire': 'Control térmico', 'Instalación de temporizador digital': 'Control térmico',
+        'Aislamiento de tuberías': 'Control térmico', 'Recuperadores de calor': 'Control térmico',
+        'Optimización de la potencia contratada': 'Gestión energética', 'Implementación de un sistema de gestión': 'Gestión energética',
+        'Compensación del consumo de energía reactiva': 'Gestión energética', 'Reducción del consumo remanente': 'Gestión energética',
+        'Buenas prácticas': 'Gestión energética', 'Batería de condensadores': 'Gestión energética',
+        'Instalación solar fotovoltaica': 'Gestión energética', 'Sustitución de luminarias a LED': 'Iluminación eficiente',
+        'Instalación de regletas programables': 'Iluminación eficiente', 'Mejora en el control': 'Iluminación eficiente'
+    }
+    def get_type(measure):
+        for key, value in measure_map.items():
+            if key.lower() in measure.lower(): return value
+        return 'Other'
+    df_in['Category'] = df_in['Measure'].apply(get_type)
+    return df_in
+
+def categorize_by_intervention(df_in):
+    """Categorizes by the type of work required."""
+    def get_type(measure):
+        measure = measure.lower()
+        if any(word in measure for word in ["instalación", "batería", "recuperadores", "solar"]): return 'New System Installation'
+        elif any(word in measure for word in ["sustitución", "cambio", "mejora", "aislamiento"]): return 'Equipment Retrofit & Upgrade'
+        elif any(word in measure for word in ["prácticas", "regulación", "optimización", "reducción"]): return 'Operational & Behavioral'
+        return 'Other'
+    df_in['Category'] = df_in['Measure'].apply(get_type)
+    return df_in
+
+def categorize_by_financials(df_in):
+    """Categorizes by the payback period."""
+    def get_type(payback):
+        if payback <= 0: return 'No Cost / Immediate'
+        if payback < 2: return 'Quick Wins (< 2 years)'
+        if payback <= 5: return 'Standard Projects (2-5 years)'
+        return 'Strategic Investments (> 5 years)'
+    df_in['Category'] = df_in['Pay back period'].apply(get_type)
+    return df_in
+
+def categorize_by_function(df_in):
+    """Categorizes by the relevant business function."""
+    def get_type(measure):
+        measure = measure.lower()
+        if any(word in measure for word in ["hvac", "climatización", "temperatura", "ventilación", "aislamiento", "cortina", "calor"]): return 'Building Envelope & HVAC'
+        if any(word in measure for word in ["led", "iluminación", "luminarias", "eléctrico", "potencia", "reactiva", "condensadores", "regletas"]): return 'Lighting & Electrical'
+        if any(word in measure for word in ["gestión", "fotovoltaica", "solar", "prácticas", "remanente"]): return 'Energy Management & Strategy'
+        return 'Other'
+    df_in['Category'] = df_in['Measure'].apply(get_type)
+    return df_in
+
+# 3. Define ALL sidebar widgets to get user input
+with st.sidebar:
+    st.title('⚡ Asepeyo Filters')
+    
+    analysis_type = st.radio(
+        "Select Analysis Type",
+        ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'),
+        key='analysis_type'
+    )
+    
+    st.markdown("---")
+    
+    community_list = sorted(df['Comunidad Autónoma'].unique().tolist())
+    selected_communities = st.multiselect(
+        'Select Communities to Compare',
+        community_list,
+        default=community_list  # Default to all selected
+    )
+
+    # Logic for dependent center selection with All/None buttons
+    if selected_communities:
+        available_centers = sorted(
+            df[df['Comunidad Autónoma'].isin(selected_communities)]['Center'].unique().tolist()
+        )
+        
+        st.write("Manage Center Selection:")
+        col1, col2 = st.columns(2)
+        if col1.button("Select All", use_container_width=True, key='select_all_centers'):
+            st.session_state.selected_centers = available_centers
+        if col2.button("Deselect All", use_container_width=True, key='deselect_all_centers'):
+            st.session_state.selected_centers = []
+
+        # The multiselect widget's default is now controlled by the buttons via session_state
+        selected_centers = st.multiselect(
+            'Select Centers',
+            available_centers,
+            default=st.session_state.selected_centers
+        )
+        st.session_state.selected_centers = selected_centers # Update state with current selection
+    else:
+        selected_centers = []
+
+# 4. Now that all inputs are collected, process the data
+# Apply categorization based on the selected analysis type
+if analysis_type == 'Tipo de Intervención':
+    df_categorized = categorize_by_intervention(df.copy())
+elif analysis_type == 'Impacto Financiero':
+    df_categorized = categorize_by_financials(df.copy())
+elif analysis_type == 'Función de Negocio':
+    df_categorized = categorize_by_function(df.copy())
+else:
+    df_categorized = categorize_by_tipo(df.copy())
+
+# Filter the categorized dataframe based on the sidebar selections
+if selected_communities and selected_centers:
+    df_filtered = df_categorized[
+        df_categorized['Comunidad Autónoma'].isin(selected_communities) &
+        df_categorized['Center'].isin(selected_centers)
+    ]
+elif selected_communities:
+    # If communities are selected but no centers, show data for all centers in those communities
+    df_filtered = df_categorized[df_categorized['Comunidad Autónoma'].isin(selected_communities)]
+else:
+    # If nothing is selected, create an empty dataframe to prevent errors
+    df_filtered = pd.DataFrame(columns=df_categorized.columns)
 
 # Provide the correct path to your CSV file
 df = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
