@@ -35,6 +35,8 @@ if not df_original.empty:
     # --- Session State Initialization ---
     if 'selected_centers' not in st.session_state:
         st.session_state.selected_centers = []
+    if 'selected_communities' not in st.session_state:
+        st.session_state.selected_communities = sorted(df_original['Comunidad Autónoma'].unique().tolist())
 
     # --- Helper Functions for Categorization ---
     def categorize_by_tipo(df_in):
@@ -88,61 +90,46 @@ if not df_original.empty:
     with st.sidebar:
         st.title('⚡ Asepeyo Filters')
         
-        analysis_type = st.radio(
-            "Select Analysis Type",
-            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio')
-        )
-        
+        analysis_type = st.radio("Select Analysis Type", ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'))
         show_percentage = st.toggle('Show percentage values')
-
         st.markdown("---")
-        
-        # ** NEW: Master switch for chart detail level **
         detailed_view = st.toggle('Show Detailed Center View', key='detailed_view')
         
         community_list = sorted(df_original['Comunidad Autónoma'].unique().tolist())
-        selected_communities = st.multiselect(
-            'Select Communities',
-            community_list,
-            default=community_list
-        )
+        if st.button("All Communities", use_container_width=True):
+            st.session_state.selected_communities = community_list
+        
+        selected_communities = st.multiselect('Select Communities', community_list, default=st.session_state.selected_communities)
+        st.session_state.selected_communities = selected_communities
 
-        # Only show the center selector if in detailed view
         if detailed_view:
             if selected_communities:
                 available_centers = sorted(df_original[df_original['Comunidad Autónoma'].isin(selected_communities)]['Center'].unique().tolist())
-                
                 if not all(center in available_centers for center in st.session_state.selected_centers):
                     st.session_state.selected_centers = available_centers
-
+                
                 st.write("Manage Center Selection:")
-                if st.button("All", key='select_all_centers'):
+                if st.button("All Centers", use_container_width=True):
                     st.session_state.selected_centers = available_centers
+                if st.button("Deselect Centers", use_container_width=True):
+                    st.session_state.selected_centers = []
 
-                selected_centers = st.multiselect(
-                    'Select Centers to Compare', 
-                    available_centers, 
-                    default=st.session_state.selected_centers
-                )
+                selected_centers = st.multiselect('Select Centers', available_centers, default=st.session_state.selected_centers)
                 st.session_state.selected_centers = selected_centers
             else:
                 selected_centers = []
         else:
-            selected_centers = [] # Ensure this is empty if not in detailed view
+            selected_centers = []
 
     # --- Data Processing based on Filters ---
-    if analysis_type == 'Tipo de Intervención':
-        df_categorized = categorize_by_intervention(df_original.copy())
-    elif analysis_type == 'Impacto Financiero':
-        df_categorized = categorize_by_financials(df_original.copy())
-    elif analysis_type == 'Función de Negocio':
-        df_categorized = categorize_by_function(df_original.copy())
-    else:
-        df_categorized = categorize_by_tipo(df_original.copy())
+    df_categorized = {
+        'Tipo de Intervención': categorize_by_intervention,
+        'Impacto Financiero': categorize_by_financials,
+        'Función de Negocio': categorize_by_function,
+    }.get(analysis_type, categorize_by_tipo)(df_original.copy())
 
     if selected_communities:
         df_filtered = df_categorized[df_categorized['Comunidad Autónoma'].isin(selected_communities)]
-        # Apply center filter ONLY if in detailed view and centers are selected
         if detailed_view and selected_centers:
             df_filtered = df_filtered[df_filtered['Center'].isin(selected_centers)]
     else:
@@ -161,69 +148,76 @@ if not df_original.empty:
     else:
         st.header(f"Summarized view for {len(selected_communities)} communities")
 
-    # KPI Calculation and Display
-    total_investment = df_filtered['Investment'].sum()
-    total_money_saved = df_filtered['Money Saved'].sum()
-    total_energy_saved = df_filtered['Energy Saved'].sum()
-    roi = (total_money_saved / total_investment) * 100 if total_investment > 0 else 0
-
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-    kpi1.metric(label="Total Investment", value=f"€ {total_investment:,.0f}")
-    kpi2.metric(label="Total Money Saved", value=f"€ {total_money_saved:,.0f}")
-    kpi3.metric(label="Total Energy Saved", value=f"{total_energy_saved:,.0f} kWh")
-    kpi4.metric(label="Return on Investment (ROI)", value=f"{roi:.2f} %")
-    st.markdown("---")
-
-    # Chart Rendering
+    # KPI and Chart Rendering
     if not df_filtered.empty:
-        # ** FIX: The grouping column is now controlled by the new toggle **
+        total_investment = df_filtered['Investment'].sum()
+        total_money_saved = df_filtered['Money Saved'].sum()
+        total_energy_saved = df_filtered['Energy Saved'].sum()
+        roi = (total_money_saved / total_investment) * 100 if total_investment > 0 else 0
+
+        kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+        kpi1.metric(label="Total Investment", value=f"€ {total_investment:,.0f}")
+        kpi2.metric(label="Total Money Saved", value=f"€ {total_money_saved:,.0f}")
+        kpi3.metric(label="Total Energy Saved", value=f"{total_energy_saved:,.0f} kWh")
+        kpi4.metric(label="Return on Investment (ROI)", value=f"{roi:.2f} %")
+        st.markdown("---")
+
         group_by_col = 'Center' if detailed_view else 'Comunidad Autónoma'
-        
         col1, col2 = st.columns(2, gap="large")
 
         with col1:
             st.subheader(f"Measure Counts by {analysis_type}")
-            if 'Category' in df_filtered.columns:
-                if show_percentage:
-                    measures_by_type = df_filtered.groupby([group_by_col, 'Category']).size().unstack(fill_value=0)
-                    measures_pct = measures_by_type.apply(lambda x: x * 100 / x.sum(), axis=1).stack().reset_index(name='Percentage')
-                    fig1 = px.bar(measures_pct, x=group_by_col, y='Percentage', color='Category', title=f'% of Measure Types per {group_by_col}')
-                    fig1.update_yaxes(title_text="Percentage of Measures (%)")
-                else:
-                    measures_by_type = df_filtered.groupby([group_by_col, 'Category']).size().reset_index(name='Count')
-                    fig1 = px.bar(measures_by_type, x=group_by_col, y='Count', color='Category', title=f'Measure Counts per {group_by_col}')
-                    fig1.update_yaxes(title_text="Number of Measures")
-                fig1.update_layout(xaxis_title=group_by_col, legend_title=analysis_type, template="plotly_white")
-                st.plotly_chart(fig1, use_container_width=True)
+            # Aggregate data to include measure details for hover
+            agg_data = df_filtered.groupby([group_by_col, 'Category']).agg(
+                Count=('Measure', 'size'),
+                Measures=('Measure', lambda x: '<br>'.join(x.unique()))
+            ).reset_index()
+
+            if show_percentage:
+                total_counts = agg_data.groupby(group_by_col)['Count'].transform('sum')
+                agg_data['Percentage'] = (agg_data['Count'] / total_counts) * 100
+                y_val, y_label = 'Percentage', 'Percentage of Measures (%)'
+            else:
+                y_val, y_label = 'Count', 'Number of Measures'
+
+            fig1 = px.bar(agg_data, x=group_by_col, y=y_val, color='Category', hover_data=['Measures'], title=f'Measure Counts per {group_by_col}')
+            fig1.update_layout(yaxis_title=y_label, xaxis_title=group_by_col, legend_title=analysis_type, template="plotly_white")
+            st.plotly_chart(fig1, use_container_width=True)
 
             st.subheader("Energy Savings Analysis")
+            energy_agg = df_filtered.groupby(group_by_col).agg(
+                Total_Energy_Saved=('Energy Saved', 'sum'),
+                Measures=('Measure', lambda x: '<br>'.join(x.unique()))
+            ).reset_index()
+
             if show_percentage:
-                total_savings = df_filtered['Energy Saved'].sum()
-                energy_savings = df_filtered.groupby(group_by_col)['Energy Saved'].sum().reset_index()
-                energy_savings['Percentage'] = (energy_savings['Energy Saved'] / total_savings) * 100 if total_savings > 0 else 0
-                fig5 = px.bar(energy_savings.sort_values('Energy Saved', ascending=False), x=group_by_col, y='Percentage', title=f'% Contribution to Energy Savings')
-                fig5.update_yaxes(title_text="Contribution to Total Savings (%)")
+                total_savings_overall = energy_agg['Total_Energy_Saved'].sum()
+                energy_agg['Percentage'] = (energy_agg['Total_Energy_Saved'] / total_savings_overall) * 100 if total_savings_overall > 0 else 0
+                y_val, y_label = 'Percentage', 'Contribution to Total Savings (%)'
             else:
-                energy_savings = df_filtered.groupby(group_by_col)['Energy Saved'].sum().reset_index()
-                fig5 = px.bar(energy_savings.sort_values('Energy Saved', ascending=False), x=group_by_col, y='Energy Saved', title=f'Energy Savings (kWh) per {group_by_col}')
-                fig5.update_yaxes(title_text="Energy Saved (kWh)")
-            fig5.update_layout(xaxis_title=group_by_col, template="plotly_white")
+                y_val, y_label = 'Total_Energy_Saved', 'Energy Saved (kWh)'
+
+            fig5 = px.bar(energy_agg.sort_values('Total_Energy_Saved', ascending=False), x=group_by_col, y=y_val, hover_data=['Measures'], title=f'Energy Savings per {group_by_col}')
+            fig5.update_layout(yaxis_title=y_label, xaxis_title=group_by_col, template="plotly_white")
             st.plotly_chart(fig5, use_container_width=True)
 
         with col2:
             st.subheader("Economic Savings Analysis")
-            economic_savings = df_filtered.groupby(group_by_col)['Money Saved'].sum().reset_index()
-            fig6 = px.pie(economic_savings, names=group_by_col, values='Money Saved', title=f'Contribution to Economic Savings by {group_by_col}', hole=0.4)
-            fig6.update_layout(template="plotly_white")
+            eco_agg = df_filtered.groupby(group_by_col).agg(
+                Total_Money_Saved=('Money Saved', 'sum'),
+                Measure_Count=('Measure', 'size')
+            ).reset_index()
+            fig6 = px.pie(eco_agg, names=group_by_col, values='Total_Money_Saved', title=f'Contribution to Economic Savings by {group_by_col}', hole=0.4, hover_data=['Measure_Count'])
+            fig6.update_traces(hovertemplate='<b>%{label}</b><br>Money Saved: €%{value:,.0f}<br>Measure Count: %{customdata[0]}<extra></extra>')
             st.plotly_chart(fig6, use_container_width=True)
             
             st.subheader("Investment vs. Financial Savings")
-            financial_summary = df_filtered.groupby(group_by_col).agg(Total_Investment=('Investment', 'sum'), Total_Money_Saved=('Money Saved', 'sum')).reset_index()
-            fig7 = px.scatter(financial_summary, x='Total_Investment', y='Total_Money_Saved', text=group_by_col, size='Total_Investment', color=group_by_col, title=f'Investment vs. Money Saved per {group_by_col}')
+            fin_summary = df_filtered.groupby(group_by_col).agg(Total_Investment=('Investment', 'sum'), Total_Money_Saved=('Money Saved', 'sum')).reset_index()
+            fig7 = px.scatter(fin_summary, x='Total_Investment', y='Total_Money_Saved', text=group_by_col, size='Total_Investment', color=group_by_col, title=f'Investment vs. Money Saved per {group_by_col}')
             fig7.update_traces(textposition='top center')
-            fig7.update_layout(xaxis_title="Investment (€)", yaxis_title="Annual Money Saved (€)", template="plotly_white")
             st.plotly_chart(fig7, use_container_width=True)
-
+        
+        # ... (Advanced Analysis Section remains the same) ...
         # Advanced Analysis Section
         st.markdown("---")
         st.header("Advanced Analysis")
