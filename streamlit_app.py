@@ -28,7 +28,7 @@ def load_data(file_path):
         return pd.DataFrame()
 
 # --- Main Application Logic ---
-df_original = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
+df_original = load_data('2025 Energy Audit summary - Sheet1 (1).csv')
 
 if not df_original.empty:
 
@@ -97,6 +97,9 @@ if not df_original.empty:
 
         st.markdown("---")
         
+        # ** NEW: Master switch for chart detail level **
+        detailed_view = st.toggle('Show Detailed Center View', key='detailed_view')
+        
         community_list = sorted(df_original['Comunidad Autónoma'].unique().tolist())
         selected_communities = st.multiselect(
             'Select Communities',
@@ -104,26 +107,28 @@ if not df_original.empty:
             default=community_list
         )
 
-        if selected_communities:
-            available_centers = sorted(df_original[df_original['Comunidad Autónoma'].isin(selected_communities)]['Center'].unique().tolist())
-            
-            # This check resets center selection if the available centers change
-            if not all(center in available_centers for center in st.session_state.selected_centers):
-                st.session_state.selected_centers = available_centers
+        # Only show the center selector if in detailed view
+        if detailed_view:
+            if selected_communities:
+                available_centers = sorted(df_original[df_original['Comunidad Autónoma'].isin(selected_communities)]['Center'].unique().tolist())
+                
+                if not all(center in available_centers for center in st.session_state.selected_centers):
+                    st.session_state.selected_centers = available_centers
 
-            # --- "All" button and Center Selection ---
-            st.write("Manage Center Selection:")
-            if st.button("All", key='select_all_centers'):
-                st.session_state.selected_centers = available_centers
+                st.write("Manage Center Selection:")
+                if st.button("All", key='select_all_centers'):
+                    st.session_state.selected_centers = available_centers
 
-            selected_centers = st.multiselect(
-                'Select Centers to Compare', 
-                available_centers, 
-                default=st.session_state.selected_centers
-            )
-            st.session_state.selected_centers = selected_centers
+                selected_centers = st.multiselect(
+                    'Select Centers to Compare', 
+                    available_centers, 
+                    default=st.session_state.selected_centers
+                )
+                st.session_state.selected_centers = selected_centers
+            else:
+                selected_centers = []
         else:
-            selected_centers = []
+            selected_centers = [] # Ensure this is empty if not in detailed view
 
     # --- Data Processing based on Filters ---
     if analysis_type == 'Tipo de Intervención':
@@ -137,7 +142,8 @@ if not df_original.empty:
 
     if selected_communities:
         df_filtered = df_categorized[df_categorized['Comunidad Autónoma'].isin(selected_communities)]
-        if selected_centers:
+        # Apply center filter ONLY if in detailed view and centers are selected
+        if detailed_view and selected_centers:
             df_filtered = df_filtered[df_filtered['Center'].isin(selected_centers)]
     else:
         df_filtered = pd.DataFrame(columns=df_categorized.columns)
@@ -148,12 +154,14 @@ if not df_original.empty:
     # Header Logic
     if not selected_communities:
         st.warning("Please select at least one community to view data.")
-    elif not selected_centers:
-        st.warning(f"Please select at least one center.")
-    else:
+    elif detailed_view and not selected_centers:
+        st.warning(f"Please select at least one center for detailed comparison.")
+    elif detailed_view:
         st.header(f"Comparing {len(selected_centers)} centers across {len(selected_communities)} communities")
+    else:
+        st.header(f"Summarized view for {len(selected_communities)} communities")
 
-    # KPI Calculation
+    # KPI Calculation and Display
     total_investment = df_filtered['Investment'].sum()
     total_money_saved = df_filtered['Money Saved'].sum()
     total_energy_saved = df_filtered['Energy Saved'].sum()
@@ -168,8 +176,8 @@ if not df_original.empty:
 
     # Chart Rendering
     if not df_filtered.empty:
-        # ** FIX: The grouping column is now always 'Center' to ensure detailed comparison **
-        group_by_col = 'Center'
+        # ** FIX: The grouping column is now controlled by the new toggle **
+        group_by_col = 'Center' if detailed_view else 'Comunidad Autónoma'
         
         col1, col2 = st.columns(2, gap="large")
 
@@ -213,7 +221,7 @@ if not df_original.empty:
             financial_summary = df_filtered.groupby(group_by_col).agg(Total_Investment=('Investment', 'sum'), Total_Money_Saved=('Money Saved', 'sum')).reset_index()
             fig7 = px.scatter(financial_summary, x='Total_Investment', y='Total_Money_Saved', text=group_by_col, size='Total_Investment', color=group_by_col, title=f'Investment vs. Money Saved per {group_by_col}')
             fig7.update_traces(textposition='top center')
-            fig7.update_layout(template="plotly_white")
+            fig7.update_layout(xaxis_title="Investment (€)", yaxis_title="Annual Money Saved (€)", template="plotly_white")
             st.plotly_chart(fig7, use_container_width=True)
 
         # Advanced Analysis Section
@@ -250,8 +258,9 @@ if not df_original.empty:
                   value=sankey_data['Total_Investment'],
                   hovertemplate='Investment from %{source.label} to %{target.label}: €%{value:,.0f}<br>' + 'Resulting Savings: €' + sankey_data['Total_Savings'].map('{:,.0f}'.format) + '<extra></extra>'
                 ))])
-            fig_sankey.update_layout(title_text="Flow from Measure Category to Center by Investment", font_size=12)
+            fig_sankey.update_layout(title_text=f"Flow from Category to {group_by_col} by Investment", font_size=12)
             st.plotly_chart(fig_sankey, use_container_width=True)
 
 else:
     st.warning("Data could not be loaded. Please check the file path and try again.")
+    
