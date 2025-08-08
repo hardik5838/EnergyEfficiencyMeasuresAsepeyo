@@ -218,58 +218,107 @@ if not df_original.empty:
             st.plotly_chart(fig7, use_container_width=True)
         
 # Advanced Analysis Section
-
-        st.markdown("---")
-        st.header("Advanced Analysis")
-        adv_col1, adv_col2 = st.columns(2, gap="large")
-
-
-
-        with adv_col1:
-            st.subheader("Investment Efficacy")
-            plot_data = df_filtered[(df_filtered['Investment'] > 0) & (df_filtered['Money Saved'] > 0)]
-            if not plot_data.empty:
-                fig_bubble = px.scatter(plot_data, x='Investment', y='Money Saved', size='Energy Saved', color='Category', hover_name='Measure', size_max=60, title="Investment vs. Annual Savings")
-                fig_bubble.update_layout(xaxis_title="Investment (€)", yaxis_title="Annual Money Saved (€)", legend_title=analysis_type, template="plotly_white")
-                st.plotly_chart(fig_bubble, use_container_width=True)
-
-
-
-        with adv_col2:
-            st.subheader("Project Payback Distribution")
-            payback_data = df_filtered[df_filtered['Pay back period'] > 0]
-            if not payback_data.empty:
-                fig_hist = px.histogram(payback_data, x='Pay back period', nbins=20, title="Distribution of Payback Periods")
-                fig_hist.update_layout(xaxis_title="Payback Period (Years)", yaxis_title="Number of Measures", template="plotly_white")
-                st.plotly_chart(fig_hist, use_container_width=True)
-
-
-
-        st.markdown("---")
-        st.subheader("Investment & Savings Flow (Sankey Diagram)")
-        sankey_data = df_filtered.groupby(['Category', group_by_col]).agg(Total_Investment=('Investment', 'sum'), Total_Savings=('Money Saved', 'sum')).reset_index()
-        if not sankey_data.empty and sankey_data['Total_Investment'].sum() > 0:
-            all_nodes = list(pd.concat([sankey_data['Category'], sankey_data[group_by_col]]).unique())
-            fig_sankey = go.Figure(data=[go.Sankey(
-                node=dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=all_nodes),
-                link=dict(
-                  source=[all_nodes.index(cat) for cat in sankey_data['Category']],
-                  target=[all_nodes.index(center) for center in sankey_data[group_by_col]],
-                  value=sankey_data['Total_Investment'],
-                  hovertemplate='Investment from %{source.label} to %{target.label}: €%{value:,.0f}<br>' + 'Resulting Savings: €' + sankey_data['Total_Savings'].map('{:,.0f}'.format) + '<extra></extra>'
-                ))])
-
-            fig_sankey.update_layout(title_text=f"Flow from Category to {group_by_col} by Investment", font_size=12)
-
-            st.plotly_chart(fig_sankey, use_container_width=True)
-
-
-
-else:
-
-    st.warning("Data could not be loaded. Please check the file path and try again.")
-
-
-    else:
-        st.info("No data available for the current filter selection.")
+    # --- Advanced Analysis Section ---
+    st.markdown("---")
+    st.header("Advanced Analysis")
+    
+    # Create two columns for the new charts
+    adv_col1, adv_col2 = st.columns(2, gap="large")
+    
+    with adv_col1:
+        # --- Recommendation 1: Investment vs. Savings Bubble Chart ---
+        st.subheader("Investment Efficacy")
         
+        # Filter out measures with no investment or savings to clean up the plot
+        plot_data = df_filtered[(df_filtered['Investment'] > 0) & (df_filtered['Money Saved'] > 0)]
+        
+        if not plot_data.empty:
+            fig_bubble = px.scatter(
+                plot_data,
+                x='Investment',
+                y='Money Saved',
+                size='Energy Saved',  # Bubble size represents energy savings
+                color='Category',     # Color by the selected analysis type
+                hover_name='Measure', # Show measure name on hover
+                size_max=60,          # Control the maximum bubble size for readability
+                template="plotly_white",
+                title="Investment vs. Annual Savings"
+            )
+            
+            fig_bubble.update_layout(
+                xaxis_title="Investment (€)",
+                yaxis_title="Annual Money Saved (€)",
+                legend_title=analysis_type
+            )
+            st.plotly_chart(fig_bubble, use_container_width=True)
+        else:
+            st.info("No data with both investment and savings to display in the bubble chart.")
+    
+    with adv_col2:
+        # --- Recommendation 2: Payback Period Histogram ---
+        st.subheader("Project Payback Distribution")
+        
+        # Filter out items with no payback period for a cleaner histogram
+        payback_data = df_filtered[df_filtered['Pay back period'] > 0]
+        
+        if not payback_data.empty:
+            fig_hist = px.histogram(
+                payback_data,
+                x='Pay back period',
+                nbins=20, # Adjust the number of bins for more or less detail
+                template="plotly_white",
+                title="Distribution of Payback Periods"
+            )
+            
+            fig_hist.update_layout(
+                xaxis_title="Payback Period (Years)",
+                yaxis_title="Number of Measures"
+            )
+            st.plotly_chart(fig_hist, use_container_width=True)
+        else:
+            st.info("No data with a payback period to display in the histogram.")
+    
+    
+    # --- Recommendation 3: Sankey Diagram ---
+    st.markdown("---")
+    st.subheader("Investment & Savings Flow (Sankey Diagram)")
+    
+    # Sankey diagrams require specific data formatting (source, target, value)
+    sankey_data = df_filtered.groupby(['Category', group_by_col]).agg(
+        Total_Investment=('Investment', 'sum'),
+        Total_Savings=('Money Saved', 'sum')
+    ).reset_index()
+    
+    if not sankey_data.empty and sankey_data['Total_Investment'].sum() > 0:
+        import plotly.graph_objects as go
+    
+        # Create lists of unique sources and targets
+        all_nodes = list(pd.concat([sankey_data['Category'], sankey_data[group_by_col]]).unique())
+        
+        # Create the Sankey diagram
+        fig_sankey = go.Figure(data=[go.Sankey(
+            node=dict(
+              pad=15,
+              thickness=20,
+              line=dict(color="black", width=0.5),
+              label=all_nodes,
+            ),
+            link=dict(
+              # Map text labels to integer indices
+              source=[all_nodes.index(cat) for cat in sankey_data['Category']],
+              target=[all_nodes.index(center) for center in sankey_data[group_by_col]],
+              value=sankey_data['Total_Investment'],
+              # Add hover info to show both investment and savings
+              hovertemplate='Investment from %{source.label} to %{target.label}: €%{value:,.0f}<br>' +
+                            'Resulting Savings: €' + sankey_data['Total_Savings'].map('{:,.0f}'.format) + 
+                            '<extra></extra>' # Hides the default trace info
+            ))])
+    
+        fig_sankey.update_layout(title_text="Flow from Measure Category to Center by Investment", font_size=12)
+        st.plotly_chart(fig_sankey, use_container_width=True)
+    else:
+        st.info("Not enough data to generate the Sankey diagram for the current selection.")
+else:
+    st.warning("Data could not be loaded. Please check the file path and try again.")
+
+
