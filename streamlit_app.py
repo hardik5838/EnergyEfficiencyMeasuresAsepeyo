@@ -29,7 +29,7 @@ def load_data(file_path):
 
 
 # --- Main Application Logic ---
-df_original = load_data('2025 Energy Audit summary - Sheet1 (1).csv')
+df = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
 
 if not df_original.empty:
 
