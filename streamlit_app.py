@@ -285,26 +285,50 @@ if not df_filtered.empty:
         st.plotly_chart(fig_sankey, use_container_width=True)
 
     # --- Data Tables Section ---
+    st.markdown("---")
+    st.header("Data Tables")
+    
+    # Table 1: Measure Coding System - This table is only shown for the 'Tipo de Medida' analysis
     if analysis_type == 'Tipo de Medida':
-        st.markdown("---")
-        st.header("Data Tables")
         st.subheader("1. Measure Coding System")
         if 'measure_mapping' in locals():
             code_explanation_df = pd.DataFrame(measure_mapping.items(), columns=['Measure Description', 'Info'])
             code_explanation_df['Category'] = code_explanation_df['Info'].apply(lambda x: x['Category'])
             code_explanation_df['Code Prefix'] = code_explanation_df['Info'].apply(lambda x: x['Code'])
-            st.dataframe(code_explanation_df[['Category', 'Measure Description', 'Code Prefix']].sort_values(by=['Code Prefix']), use_container_width=True, hide_index=True)
-
-        st.subheader("2. Detailed Data per Measure")
-        if 'Measure Code' in df_filtered.columns:
-            financial_table_df = df_filtered[[group_by_col, 'Measure Code', 'Measure', 'Investment', 'Energy Saved', 'Money Saved', 'Pay back period']].sort_values(by=[group_by_col, 'Measure Code'])
-            st.dataframe(financial_table_df, use_container_width=True, hide_index=True,
-                column_config={
-                    "Investment": st.column_config.NumberColumn("Investment (€)", format="€ %d"),
-                    "Energy Saved": st.column_config.NumberColumn("Energy Saved (kWh)", format="%d kWh"),
-                    "Money Saved": st.column_config.NumberColumn("Money Saved (€/year)", format="€ %d"),
-                    "Pay back period": st.column_config.NumberColumn("Payback (years)", format="%.1f years"),
-                }
+            st.dataframe(
+                code_explanation_df[['Category', 'Measure Description', 'Code Prefix']].sort_values(by=['Code Prefix']),
+                use_container_width=True,
+                hide_index=True
             )
-else:
-    st.info("No data available for the current filter selection.")
+    
+    # Table 2: Detailed Financials per Measure - This table is now visible for ALL analysis types
+    st.subheader("2. Detailed Data per Measure")
+    
+    # Define the base columns that are always visible
+    columns_to_display = [
+        group_by_col,
+        'Measure',
+        'Category',
+        'Investment',
+        'Energy Saved',
+        'Money Saved',
+        'Pay back period'
+    ]
+    
+    # Add the 'Measure Code' column only if it exists for the current view
+    if analysis_type == 'Tipo de Medida' and 'Measure Code' in df_filtered.columns:
+        columns_to_display.insert(1, 'Measure Code')
+    
+    # Create and display the dataframe
+    financial_table_df = df_filtered[columns_to_display].sort_values(by=[group_by_col])
+    st.dataframe(
+        financial_table_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Investment": st.column_config.NumberColumn("Investment (€)", format="€ %d"),
+            "Energy Saved": st.column_config.NumberColumn("Energy Saved (kWh)", format="%d kWh"),
+            "Money Saved": st.column_config.NumberColumn("Money Saved (€/year)", format="€ %d"),
+            "Pay back period": st.column_config.NumberColumn("Payback (years)", format="%.1f years"),
+        }
+    )
