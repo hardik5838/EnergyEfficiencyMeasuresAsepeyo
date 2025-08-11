@@ -40,17 +40,17 @@ if not df_original.empty:
 
     # --- Centralized and Improved Measure Mapping ---
     measure_mapping = {
-        "Regulation of the set temperature": {"Category": "Thermal control measures", "Code": "A.1"},
+        "Regulación de la temperatura de consigna": {"Category": "Thermal control measures", "Code": "A.1"},
         "Sustitución de equipos de climatización": {"Category": "Thermal control measures", "Code": "A.2"},
-        "Air curtain installation": {"Category": "Thermal control measures", "Code": "A.3"},
-        "Installing a digital timer": {"Category": "Thermal control measures", "Code": "A.4"},
-        "Ventilation regulation using a CO2 probe": {"Category": "Thermal control measures", "Code": "A.5"},
-        "Heat recovery units": {"Category": "Thermal control measures", "Code": "A.6"},
-        "O2 adjustment in diesel boiler C": {"Category": "Thermal control measures", "Code": "A.7"},
-        "Installation of variable frequency drives in pumps": {"Category": "Thermal control measures", "Code": "A.8"},
-        "Solar thermal installation": {"Category": "Thermal control measures", "Code": "A.9"},
-        "Optimization of contracted power": {"Category": "Energy management measures", "Code": "B.1"},
-        "Sistema de Gestión": {"Category": "Energy management measures", "Code": "B.2"},
+        "Instalación de cortina de aire": {"Category": "Thermal control measures", "Code": "A.3"},
+        "Instalación de temporizador digital": {"Category": "Thermal control measures", "Code": "A.4"},
+        "Regulación de ventilación mediante sonda CO2": {"Category": "Thermal control measures", "Code": "A.5"},
+        "Recuperadores de calor": {"Category": "Thermal control measures", "Code": "A.6"},
+        "Ajuste O2 en caldera gasóleo": {"Category": "Thermal control measures", "Code": "A.7"},
+        "Instalación de Variadores de frecuencia en bombas": {"Category": "Thermal control measures", "Code": "A.8"},
+        "Instalación Solar térmica": {"Category": "Thermal control measures", "Code": "A.9"},
+        "Optimización de la potencia contratada": {"Category": "Energy management measures", "Code": "B.1"},
+        "Sistema de gestión energética": {"Category": "Energy management measures", "Code": "B.2"},
         "Eliminación energía reactiva": {"Category": "Energy management measures", "Code": "B.3"},
         "Reducción del consumo remanente": {"Category": "Energy management measures", "Code": "B.4"},
         "Promover la cultura energética": {"Category": "Energy management measures", "Code": "B.5"},
@@ -99,20 +99,19 @@ if not df_original.empty:
         df_in['Category'] = df_in['Measure'].apply(get_type)
         return df_in
         
-    def categorize_by_energy_type(df_in):
+    def categorize_by_energy_saved(df_in):
         def get_type(measure):
             measure = measure.lower()
-            if any(word in measure for word in ["gasóleo", "diesel", "caldera"]): return 'Gas/Fuel'
-            if any(word in measure for word in ["led", "iluminación", "fotovoltaica", "eléctrico", "potencia", "reactiva", "variadores", "bombas"]): return 'Electric'
-            if any(word in measure for word in ["climatización", "temperatura", "hvac", "aislamiento", "cortina", "recuperadores"]): return 'Both/HVAC'
-            return 'Operational/N/A'
+            if any(word in measure for word in ["gasóleo", "diesel", "caldera", "térmica"]): return 'Thermal Savings (Gas/Fuel)'
+            if any(word in measure for word in ["led", "iluminación", "fotovoltaica", "eléctrico", "potencia", "reactiva", "variadores", "bombas", "regletas"]): return 'Electric Savings'
+            return 'Mixed/Operational'
         df_in['Category'] = df_in['Measure'].apply(get_type)
         return df_in
 
     # --- Sidebar for All User Filters ---
     with st.sidebar:
         st.title('⚡ Asepeyo Filters')
-        analysis_type = st.radio("Select Analysis Type", ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio', 'Tipo de Energía'))
+        analysis_type = st.radio("Select Analysis Type", ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio', 'Tipo de Ahorro Energético'))
         show_percentage = st.toggle('Show percentage values')
         st.markdown("---")
         detailed_view = st.toggle('Show Detailed Center View')
@@ -149,7 +148,7 @@ if not df_original.empty:
         'Tipo de Intervención': categorize_by_intervention,
         'Impacto Financiero': categorize_by_financials,
         'Función de Negocio': categorize_by_function,
-        'Tipo de Energía': categorize_by_energy_type,
+        'Tipo de Ahorro Energético': categorize_by_energy_saved,
     }.get(analysis_type, categorize_by_tipo)(df_original.copy())
 
     if selected_communities:
@@ -158,6 +157,18 @@ if not df_original.empty:
             df_filtered = df_filtered[df_filtered['Center'].isin(selected_centers)]
     else:
         df_filtered = pd.DataFrame(columns=df_categorized.columns)
+
+    # --- Main Panel Rendering ---
+    st.title("Energy Efficiency Analysis")
+
+    if not df_filtered.empty:
+        # Generate the full measure code ONLY for the relevant analysis type
+        if analysis_type == 'Tipo de Medida':
+            df_filtered['Frequency'] = df_filtered.groupby(['Comunidad Autónoma', 'Measure Code Base']).cumcount() + 1
+            df_filtered['Measure Code'] = df_filtered.apply(
+                lambda row: f"{row['Measure Code Base']}.{row['Frequency']}" if row['Measure Code Base'] != 'Z.Z' else 'Uncategorized', axis=1)
+        
+        group_by_col = 'Center' if detailed_view else 'Comunidad Autónoma'
 
     # --- Main Panel Rendering ---
     st.title("Energy Efficiency Analysis")
@@ -283,17 +294,22 @@ if not df_filtered.empty:
         fig_sankey.update_layout(title_text=f"Flow from Category to {group_by_col} by Investment", font_size=12)
         st.plotly_chart(fig_sankey, use_container_width=True)
 
+
+        
         # --- Data Tables Section ---
         st.markdown("---")
         st.header("Data Tables")
-
+        # --- Dynamic Explanation Table (Table 1) ---
+        st.subheader("1. Category Explanations")
         if analysis_type == 'Tipo de Medida':
-            st.subheader("1. Measure Coding System")
-            code_explanation_df = pd.DataFrame([
+            explanation_df = pd.DataFrame([
                 (info['Category'], desc, info['Code']) for desc, info in measure_mapping.items()
             ], columns=['Category', 'Measure Description', 'Code Prefix']).sort_values(by='Code Prefix')
-            st.dataframe(code_explanation_df, use_container_width=True, hide_index=True)
+        else:
+            explanation_df = df_filtered[['Category']].drop_duplicates().sort_values('Category')
+        st.dataframe(explanation_df, use_container_width=True, hide_index=True)
 
+        # --- Detailed Data Table (Table 2) ---
         st.subheader(f"2. Detailed Data by {group_by_col}")
         
         columns_to_display = [group_by_col, 'Measure', 'Category', 'Investment', 'Energy Saved', 'Money Saved', 'Pay back period']
@@ -316,6 +332,7 @@ if not df_filtered.empty:
         st.info("No data available for the current filter selection.")
 else:
     st.warning("Data could not be loaded. Please check the file path and try again.")
+
 
 
 
