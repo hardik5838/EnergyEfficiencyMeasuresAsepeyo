@@ -155,23 +155,17 @@ if not df_original.empty:
         col1, col2 = st.columns(2, gap="large")
 
         with col1:
-            st.subheader(f"Measure Counts by {analysis_type}")
-            # Aggregate data to include measure details for hover
-            agg_data = df_filtered.groupby([group_by_col, 'Category']).agg(
-                Count=('Measure', 'size'),
-                Measures=('Measure', lambda x: '<br>'.join(x.unique()))
-            ).reset_index()
-
+            st.subheader("Measure Counts by Category")
+            agg_data = df_filtered.groupby([group_by_col, 'Category']).agg(Count=('Measure', 'size'), Measures=('Measure', lambda x: '<br>'.join(x.unique()))).reset_index()
+            y_val, y_label = ('Percentage', 'Percentage of Measures (%)') if show_percentage else ('Count', 'Number of Measures')
             if show_percentage:
                 total_counts = agg_data.groupby(group_by_col)['Count'].transform('sum')
                 agg_data['Percentage'] = (agg_data['Count'] / total_counts) * 100
-                y_val, y_label = 'Percentage', 'Percentage of Measures (%)'
-            else:
-                y_val, y_label = 'Count', 'Number of Measures'
 
-            fig1 = px.bar(agg_data, x=group_by_col, y=y_val, color='Category', hover_data=['Measures'], title=f'Measure Counts per {group_by_col}')
-            fig1.update_layout(yaxis_title=y_label, xaxis_title=group_by_col, legend_title=analysis_type, template="plotly_white")
+            fig1 = px.bar(agg_data, x=group_by_col, y=y_val, color='Category', hover_data=['Measures'])
+            fig1.update_layout(title=f'Measure Counts per {group_by_col}', yaxis_title=y_label, xaxis_title=group_by_col, legend_title="Category", template="plotly_white")
             st.plotly_chart(fig1, use_container_width=True)
+
 
             st.subheader("Energy Savings Analysis")
             energy_agg = df_filtered.groupby(group_by_col).agg(
