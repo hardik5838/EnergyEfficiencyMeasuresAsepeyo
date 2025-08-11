@@ -38,32 +38,26 @@ if not df_original.empty:
     if 'selected_communities' not in st.session_state:
         st.session_state.selected_communities = sorted(df_original['Comunidad Autónoma'].unique().tolist())
 
-    # --- Helper Functions for Categorization ---
+    # --- Helper Functions for Improved Categorization ---
     def categorize_by_tipo(df_in):
-        measure_map = {
-            'Regulación de la temperatura de consigna': 'Control térmico', 'Sustitución de equipos de climatización': 'Control térmico',
-            'Instalación de cortina de aire': 'Control térmico', 'Instalación de temporizador digital': 'Control térmico',
-            'Aislamiento de tuberías': 'Control térmico', 'Recuperadores de calor': 'Control térmico',
-            'Optimización de la potencia contratada': 'Gestión energética', 'Implementación de un sistema de gestión': 'Gestión energética',
-            'Compensación del consumo de energía reactiva': 'Gestión energética', 'Reducción del consumo remanente': 'Gestión energética',
-            'Buenas prácticas': 'Gestión energética', 'Batería de condensadores': 'Gestión energética',
-            'Instalación solar fotovoltaica': 'Gestión energética', 'Sustitución de luminarias a LED': 'Iluminación eficiente',
-            'Instalación de regletas programables': 'Iluminación eficiente', 'Mejora en el control': 'Iluminación eficiente'
-        }
+        # Broader and more specific keywords to reduce 'Other'
         def get_type(measure):
-            for key, value in measure_map.items():
-                if key.lower() in measure.lower(): return value
-            return 'Other'
+            measure = measure.lower()
+            if any(word in measure for word in ["led", "iluminación", "luminarias", "regletas"]): return 'Iluminación Eficiente'
+            if any(word in measure for word in ["climatización", "climatizador", "temperatura", "ventilación", "aislamiento", "cortina", "calor", "termo"]): return 'Control Térmico y HVAC'
+            if any(word in measure for word in ["gestión", "fotovoltaica", "solar", "potencia", "reactiva", "condensadores"]): return 'Gestión y Generación Energética'
+            if any(word in measure for word in ["prácticas", "cultura", "remanente"]): return 'Prácticas Operacionales'
+            return 'Otras Medidas Específicas'
         df_in['Category'] = df_in['Measure'].apply(get_type)
         return df_in
 
     def categorize_by_intervention(df_in):
         def get_type(measure):
             measure = measure.lower()
-            if any(word in measure for word in ["instalación", "batería", "recuperadores", "solar"]): return 'New System Installation'
-            elif any(word in measure for word in ["sustitución", "cambio", "mejora", "aislamiento"]): return 'Equipment Retrofit & Upgrade'
-            elif any(word in measure for word in ["prácticas", "regulación", "optimización", "reducción"]): return 'Operational & Behavioral'
-            return 'Other'
+            if any(word in measure for word in ["instalación", "batería", "recuperadores", "solar", "fotovoltaica"]): return 'New System Installation'
+            if any(word in measure for word in ["sustitución", "cambio", "mejora", "aislamiento"]): return 'Equipment Retrofit & Upgrade'
+            if any(word in measure for word in ["prácticas", "cultura", "regulación", "optimización", "reducción"]): return 'Operational & Behavioral'
+            return 'Specific Interventions'
         df_in['Category'] = df_in['Measure'].apply(get_type)
         return df_in
 
@@ -79,17 +73,16 @@ if not df_original.empty:
     def categorize_by_function(df_in):
         def get_type(measure):
             measure = measure.lower()
-            if any(word in measure for word in ["hvac", "climatización", "temperatura", "ventilación", "aislamiento", "cortina", "calor"]): return 'Building Envelope & HVAC'
+            if any(word in measure for word in ["hvac", "climatización", "temperatura", "ventilación", "aislamiento", "cortina", "calor", "termo"]): return 'Building Envelope & HVAC'
             if any(word in measure for word in ["led", "iluminación", "luminarias", "eléctrico", "potencia", "reactiva", "condensadores", "regletas"]): return 'Lighting & Electrical'
-            if any(word in measure for word in ["gestión", "fotovoltaica", "solar", "prácticas", "remanente"]): return 'Energy Management & Strategy'
-            return 'Other'
+            if any(word in measure for word in ["gestión", "fotovoltaica", "solar", "prácticas", "remanente", "cultura"]): return 'Energy Management & Strategy'
+            return 'Other Functions'
         df_in['Category'] = df_in['Measure'].apply(get_type)
         return df_in
 
     # --- Sidebar for All User Filters ---
     with st.sidebar:
         st.title('⚡ Asepeyo Filters')
-        
         analysis_type = st.radio("Select Analysis Type", ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio'))
         show_percentage = st.toggle('Show percentage values')
         st.markdown("---")
@@ -109,12 +102,14 @@ if not df_original.empty:
                     st.session_state.selected_centers = available_centers
                 
                 st.write("Manage Center Selection:")
-                if st.button("All Centers", use_container_width=True):
-                    st.session_state.selected_centers = available_centers
-                if st.button("Deselect Centers", use_container_width=True):
-                    st.session_state.selected_centers = []
+                col1, col2 = st.columns([0.7, 0.3])
+                with col1:
+                    selected_centers = st.multiselect('Select Centers', available_centers, default=st.session_state.selected_centers, label_visibility="collapsed")
+                with col2:
+                    if st.button("All", help="Select all centers"):
+                        st.session_state.selected_centers = available_centers
+                        st.experimental_rerun()
 
-                selected_centers = st.multiselect('Select Centers', available_centers, default=st.session_state.selected_centers)
                 st.session_state.selected_centers = selected_centers
             else:
                 selected_centers = []
@@ -316,9 +311,75 @@ if not df_original.empty:
     
         fig_sankey.update_layout(title_text="Flow from Measure Category to Center by Investment", font_size=12)
         st.plotly_chart(fig_sankey, use_container_width=True)
+  
+        # --- NEW: Data Tables Section ---
+        st.markdown("---")
+        st.header("Data Tables")
+
+        # Table 1: Measure Coding and Frequency
+        st.subheader("1. Measure Coding and Frequency")
+        
+        # Create a mapping from category to an alphabet letter
+        category_codes = {cat: f"{chr(65+i)}" for i, cat in enumerate(df_filtered['Category'].unique())}
+        
+        # Create a mapping for each unique measure within a category
+        measure_codes = {}
+        for cat, group in df_filtered.groupby('Category'):
+            unique_measures = group['Measure'].unique()
+            for i, measure in enumerate(unique_measures):
+                measure_codes[measure] = f"{category_codes[cat]}.{i+1}"
+        
+        df_filtered['Measure Code Base'] = df_filtered['Measure'].map(measure_codes)
+        
+        # Calculate frequency for the final code
+        df_filtered['Frequency'] = df_filtered.groupby(['Comunidad Autónoma', 'Measure Code Base']).cumcount() + 1
+        df_filtered['Measure Code'] = df_filtered['Measure Code Base'] + '.' + df_filtered['Frequency'].astype(str)
+
+        # Prepare the explanation table
+        code_explanation_df = df_filtered[['Category', 'Measure', 'Measure Code Base']].drop_duplicates().sort_values(by=['Measure Code Base'])
+        code_explanation_df.rename(columns={'Category': 'Category', 'Measure': 'Measure Description', 'Measure Code Base': 'Code Prefix'}, inplace=True)
+        
+        st.dataframe(
+            code_explanation_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        # Table 2: Detailed Financials per Measure Code
+        st.subheader("2. Detailed Financial Data per Measure")
+        
+        group_by_col = 'Center' if detailed_view else 'Comunidad Autónoma'
+        
+        financial_table_df = df_filtered[[
+            group_by_col,
+            'Measure Code',
+            'Measure',
+            'Investment',
+            'Energy Saved',
+            'Money Saved',
+            'Pay back period'
+        ]].sort_values(by=[group_by_col, 'Measure Code'])
+
+        st.dataframe(
+            financial_table_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Investment": st.column_config.NumberColumn("Investment (€)", format="€ %d"),
+                "Energy Saved": st.column_config.NumberColumn("Energy Saved (kWh)", format="%d kWh"),
+                "Money Saved": st.column_config.NumberColumn("Money Saved (€/year)", format="€ %d"),
+                "Pay back period": st.column_config.NumberColumn("Payback (years)", format="%.1f years"),
+            }
+        )
+
     else:
-        st.info("Not enough data to generate the Sankey diagram for the current selection.")
+        st.info("No data available for the current filter selection.")
 else:
     st.warning("Data could not be loaded. Please check the file path and try again.")
+
+
+
+
+
 
 
