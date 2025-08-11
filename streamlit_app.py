@@ -28,7 +28,7 @@ def load_data(file_path):
         return pd.DataFrame()
 
 # --- Main Application Logic ---
-df_original = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
+df_original = load_data('2025 Energy Audit summary - Sheet1 (1).csv')
 
 if not df_original.empty:
 
@@ -42,22 +42,22 @@ if not df_original.empty:
     measure_mapping = {
         "Regulación de la temperatura de consigna": {"Category": "Thermal control measures", "Code": "A.1"},
         "Sustitución de equipos de climatización": {"Category": "Thermal control measures", "Code": "A.2"},
-        "Instalación de cortina de aire": {"Category": "Thermal control measures", "Code": "A.3"},
+        "Instalación cortina de aire": {"Category": "Thermal control measures", "Code": "A.3"},
         "Instalación de temporizador digital": {"Category": "Thermal control measures", "Code": "A.4"},
-        "Regulación de ventilación mediante sonda CO2": {"Category": "Thermal control measures", "Code": "A.5"},
+        "Regulación de ventilación mediante sonda de CO2": {"Category": "Thermal control measures", "Code": "A.5"},
         "Recuperadores de calor": {"Category": "Thermal control measures", "Code": "A.6"},
-        "Ajuste O2 en caldera gasóleo": {"Category": "Thermal control measures", "Code": "A.7"},
-        "Instalación de Variadores de frecuencia en bombas": {"Category": "Thermal control measures", "Code": "A.8"},
+        "Ajuste O2 en caldera gasóleo C": {"Category": "Thermal control measures", "Code": "A.7"},
+        "Instalación de Variadores de frecuencia en bombas hidráulicas": {"Category": "Thermal control measures", "Code": "A.8"},
         "Instalación Solar térmica": {"Category": "Thermal control measures", "Code": "A.9"},
         "Optimización de la potencia contratada": {"Category": "Energy management measures", "Code": "B.1"},
-        "Sistema de gestión energética": {"Category": "Energy management measures", "Code": "B.2"},
-        "Eliminación energía reactiva": {"Category": "Energy management measures", "Code": "B.3"},
+        "Sistema de Gestión Energética": {"Category": "Energy management measures", "Code": "B.2"},
+        "Eliminación de la energía reactiva": {"Category": "Energy management measures", "Code": "B.3"},
         "Reducción del consumo remanente": {"Category": "Energy management measures", "Code": "B.4"},
         "Promover la cultura energética": {"Category": "Energy management measures", "Code": "B.5"},
         "Instalación Fotovoltaica": {"Category": "Energy management measures", "Code": "B.6"},
         "Cambio Iluminacion LED": {"Category": "Lighting control measures", "Code": "C.1"},
         "Instalación regletas programables": {"Category": "Lighting control measures", "Code": "C.2"},
-        "Mejora en el control actual (iluminación)": {"Category": "Lighting control measures", "Code": "C.3"}
+        "Mejora en el control de la iluminación": {"Category": "Lighting control measures", "Code": "C.3"}
     }
     
     # --- Helper Functions for Categorization ---
@@ -169,7 +169,7 @@ if not df_original.empty:
                 lambda row: f"{row['Measure Code Base']}.{row['Frequency']}" if row['Measure Code Base'] != 'Z.Z' else 'Uncategorized', axis=1)
         
         group_by_col = 'Center' if detailed_view else 'Comunidad Autónoma'
-
+        
     # --- Main Panel Rendering ---
     st.title("Energy Efficiency Analysis")
 
@@ -299,6 +299,7 @@ if not df_filtered.empty:
         # --- Data Tables Section ---
         st.markdown("---")
         st.header("Data Tables")
+
         # --- Dynamic Explanation Table (Table 1) ---
         st.subheader("1. Category Explanations")
         if analysis_type == 'Tipo de Medida':
@@ -306,7 +307,9 @@ if not df_filtered.empty:
                 (info['Category'], desc, info['Code']) for desc, info in measure_mapping.items()
             ], columns=['Category', 'Measure Description', 'Code Prefix']).sort_values(by='Code Prefix')
         else:
+            # For other types, create a simple explanation from the unique categories
             explanation_df = df_filtered[['Category']].drop_duplicates().sort_values('Category')
+            explanation_df['Explanation'] = explanation_df['Category'] # In a real scenario, you'd map this to a definition
         st.dataframe(explanation_df, use_container_width=True, hide_index=True)
 
         # --- Detailed Data Table (Table 2) ---
@@ -332,9 +335,6 @@ if not df_filtered.empty:
         st.info("No data available for the current filter selection.")
 else:
     st.warning("Data could not be loaded. Please check the file path and try again.")
-
-
-
 
 
 
