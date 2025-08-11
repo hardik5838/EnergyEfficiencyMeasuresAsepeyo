@@ -38,31 +38,30 @@ if not df_original.empty:
     if 'selected_communities' not in st.session_state:
         st.session_state.selected_communities = sorted(df_original['Comunidad Autónoma'].unique().tolist())
 
-    # --- Centralized Measure Mapping Dictionary ---
+    # --- Centralized and Improved Measure Mapping ---
     measure_mapping = {
         "Regulation of the set temperature": {"Category": "Thermal control measures", "Code": "A.1"},
+        "Sustitución de equipos de climatización": {"Category": "Thermal control measures", "Code": "A.2"},
         "Air curtain installation": {"Category": "Thermal control measures", "Code": "A.3"},
-        "Installing a digital timer on an electric water heater": {"Category": "Thermal control measures", "Code": "A.4"},
-        "Installing a digital timer in a paraffin bath": {"Category": "Thermal control measures", "Code": "A.4"},
+        "Installing a digital timer": {"Category": "Thermal control measures", "Code": "A.4"},
         "Ventilation regulation using a CO2 probe": {"Category": "Thermal control measures", "Code": "A.5"},
         "Heat recovery units": {"Category": "Thermal control measures", "Code": "A.6"},
-        "O2 adjustment in diesel boiler C": {"Category": "Thermal control measures", "Code": "A.X"},
-        "Installation of variable frequency drives in pumps": {"Category": "Thermal control measures", "Code": "A.X"},
-        "Solar thermal installation": {"Category": "Thermal control measures", "Code": "A.X"},
+        "O2 adjustment in diesel boiler C": {"Category": "Thermal control measures", "Code": "A.7"},
+        "Installation of variable frequency drives in pumps": {"Category": "Thermal control measures", "Code": "A.8"},
+        "Solar thermal installation": {"Category": "Thermal control measures", "Code": "A.9"},
         "Optimization of contracted power": {"Category": "Energy management measures", "Code": "B.1"},
-        "Energy Management System": {"Category": "Energy management measures", "Code": "B.2"},
-        "Elimination of reactive energy": {"Category": "Energy management measures", "Code": "B.3"},
-        "Reduction of remaining consumption": {"Category": "Energy management measures", "Code": "B.4"},
-        "Promote energy culture": {"Category": "Energy management measures", "Code": "B.5"},
-        "Photovoltaic Installation": {"Category": "Energy management measures", "Code": "B.6"},
-        "LED Lighting Change": {"Category": "Lighting control measures", "Code": "C.1"},
-        "Installing programmable power strips": {"Category": "Lighting control measures", "Code": "C.2"},
-        "Improved lighting control": {"Category": "Lighting control measures", "Code": "C.3"}
+        "Sistema de Gestión": {"Category": "Energy management measures", "Code": "B.2"},
+        "Eliminación energía reactiva": {"Category": "Energy management measures", "Code": "B.3"},
+        "Reducción del consumo remanente": {"Category": "Energy management measures", "Code": "B.4"},
+        "Promover la cultura energética": {"Category": "Energy management measures", "Code": "B.5"},
+        "Instalación Fotovoltaica": {"Category": "Energy management measures", "Code": "B.6"},
+        "Cambio Iluminacion LED": {"Category": "Lighting control measures", "Code": "C.1"},
+        "Instalación regletas programables": {"Category": "Lighting control measures", "Code": "C.2"},
+        "Mejora en el control actual (iluminación)": {"Category": "Lighting control measures", "Code": "C.3"}
     }
     
     # --- Helper Functions for Categorization ---
     def categorize_by_tipo(df_in):
-        """Categorizes using the direct matching table."""
         def get_info(measure_text):
             for standard_name, info in measure_mapping.items():
                 if standard_name.lower() in measure_text.lower():
@@ -164,12 +163,11 @@ if not df_original.empty:
     st.title("Energy Efficiency Analysis")
 
     if not df_filtered.empty:
-        # Generate the full measure code ONLY for the relevant analysis type
         if analysis_type == 'Tipo de Medida':
             df_filtered['Frequency'] = df_filtered.groupby(['Comunidad Autónoma', 'Measure Code Base']).cumcount() + 1
             df_filtered['Measure Code'] = df_filtered.apply(
                 lambda row: f"{row['Measure Code Base']}.{row['Frequency']}" if row['Measure Code Base'] != 'Z.Z' else 'Uncategorized', axis=1)
-        
+
         # Header Logic
         if detailed_view and not selected_centers:
             st.warning("Please select at least one center for detailed comparison.")
@@ -289,16 +287,14 @@ if not df_filtered.empty:
         st.markdown("---")
         st.header("Data Tables")
 
-        # Table 1: Measure Coding System - ONLY shown for 'Tipo de Medida'
         if analysis_type == 'Tipo de Medida':
             st.subheader("1. Measure Coding System")
-            code_explanation_df = pd.DataFrame(measure_mapping.items(), columns=['Measure Description', 'Info'])
-            code_explanation_df['Category'] = code_explanation_df['Info'].apply(lambda x: x['Category'])
-            code_explanation_df['Code Prefix'] = code_explanation_df['Info'].apply(lambda x: x['Code'])
-            st.dataframe(code_explanation_df[['Category', 'Measure Description', 'Code Prefix']].sort_values(by=['Code Prefix']), use_container_width=True, hide_index=True)
+            code_explanation_df = pd.DataFrame([
+                (info['Category'], desc, info['Code']) for desc, info in measure_mapping.items()
+            ], columns=['Category', 'Measure Description', 'Code Prefix']).sort_values(by='Code Prefix')
+            st.dataframe(code_explanation_df, use_container_width=True, hide_index=True)
 
-        # Table 2: Detailed Financials per Measure - ALWAYS visible
-        st.subheader("2. Detailed Data per Measure")
+        st.subheader(f"2. Detailed Data by {group_by_col}")
         
         columns_to_display = [group_by_col, 'Measure', 'Category', 'Investment', 'Energy Saved', 'Money Saved', 'Pay back period']
         if analysis_type == 'Tipo de Medida' and 'Measure Code' in df_filtered.columns:
@@ -320,7 +316,6 @@ if not df_filtered.empty:
         st.info("No data available for the current filter selection.")
 else:
     st.warning("Data could not be loaded. Please check the file path and try again.")
-
 
 
 
