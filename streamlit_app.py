@@ -28,7 +28,7 @@ def load_data(file_path):
         return pd.DataFrame()
 
 # --- Main Application Logic ---
-df_original = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
+df_original = load_data('2025 Energy Audit summary - Sheet1 (1).csv')
 
 if not df_original.empty:
 
@@ -38,29 +38,31 @@ if not df_original.empty:
     if 'selected_communities' not in st.session_state:
         st.session_state.selected_communities = sorted(df_original['Comunidad Autónoma'].unique().tolist())
 
+    # --- Centralized Measure Mapping Dictionary ---
+    measure_mapping = {
+        "Regulation of the set temperature": {"Category": "Thermal control measures", "Code": "A.1"},
+        "Air curtain installation": {"Category": "Thermal control measures", "Code": "A.3"},
+        "Installing a digital timer on an electric water heater": {"Category": "Thermal control measures", "Code": "A.4"},
+        "Installing a digital timer in a paraffin bath": {"Category": "Thermal control measures", "Code": "A.4"},
+        "Ventilation regulation using a CO2 probe": {"Category": "Thermal control measures", "Code": "A.5"},
+        "Heat recovery units": {"Category": "Thermal control measures", "Code": "A.6"},
+        "O2 adjustment in diesel boiler C": {"Category": "Thermal control measures", "Code": "A.X"},
+        "Installation of variable frequency drives in pumps": {"Category": "Thermal control measures", "Code": "A.X"},
+        "Solar thermal installation": {"Category": "Thermal control measures", "Code": "A.X"},
+        "Optimization of contracted power": {"Category": "Energy management measures", "Code": "B.1"},
+        "Energy Management System": {"Category": "Energy management measures", "Code": "B.2"},
+        "Elimination of reactive energy": {"Category": "Energy management measures", "Code": "B.3"},
+        "Reduction of remaining consumption": {"Category": "Energy management measures", "Code": "B.4"},
+        "Promote energy culture": {"Category": "Energy management measures", "Code": "B.5"},
+        "Photovoltaic Installation": {"Category": "Energy management measures", "Code": "B.6"},
+        "LED Lighting Change": {"Category": "Lighting control measures", "Code": "C.1"},
+        "Installing programmable power strips": {"Category": "Lighting control measures", "Code": "C.2"},
+        "Improved lighting control": {"Category": "Lighting control measures", "Code": "C.3"}
+    }
+    
     # --- Helper Functions for Categorization ---
     def categorize_by_tipo(df_in):
-        """Categorizes using the user's direct matching table."""
-        measure_mapping = {
-            "Regulation of the set temperature": {"Category": "Thermal control measures", "Code": "A.1"},
-            "Air curtain installation": {"Category": "Thermal control measures", "Code": "A.3"},
-            "Installing a digital timer on an electric water heater": {"Category": "Thermal control measures", "Code": "A.4"},
-            "Installing a digital timer in a paraffin bath": {"Category": "Thermal control measures", "Code": "A.4"},
-            "Ventilation regulation using a CO2 probe": {"Category": "Thermal control measures", "Code": "A.5"},
-            "Heat recovery units": {"Category": "Thermal control measures", "Code": "A.6"},
-            "O2 adjustment in diesel boiler C": {"Category": "Thermal control measures", "Code": "A.X"},
-            "Installation of variable frequency drives in pumps": {"Category": "Thermal control measures", "Code": "A.X"},
-            "Solar thermal installation": {"Category": "Thermal control measures", "Code": "A.X"},
-            "Optimization of contracted power": {"Category": "Energy management measures", "Code": "B.1"},
-            "Energy Management System": {"Category": "Energy management measures", "Code": "B.2"},
-            "Elimination of reactive energy": {"Category": "Energy management measures", "Code": "B.3"},
-            "Reduction of remaining consumption": {"Category": "Energy management measures", "Code": "B.4"},
-            "Promote energy culture": {"Category": "Energy management measures", "Code": "B.5"},
-            "Photovoltaic Installation": {"Category": "Energy management measures", "Code": "B.6"},
-            "LED Lighting Change": {"Category": "Lighting control measures", "Code": "C.1"},
-            "Installing programmable power strips": {"Category": "Lighting control measures", "Code": "C.2"},
-            "Improved lighting control": {"Category": "Lighting control measures", "Code": "C.3"}
-        }
+        """Categorizes using the direct matching table."""
         def get_info(measure_text):
             for standard_name, info in measure_mapping.items():
                 if standard_name.lower() in measure_text.lower():
@@ -99,15 +101,11 @@ if not df_original.empty:
         return df_in
         
     def categorize_by_energy_type(df_in):
-        """Categorizes measures by the type of energy they affect."""
         def get_type(measure):
             measure = measure.lower()
-            if any(word in measure for word in ["gasóleo", "diesel", "caldera"]):
-                return 'Gas/Fuel'
-            if any(word in measure for word in ["led", "iluminación", "fotovoltaica", "eléctrico", "potencia", "reactiva", "variadores", "bombas"]):
-                return 'Electric'
-            if any(word in measure for word in ["climatización", "temperatura", "hvac", "aislamiento", "cortina", "recuperadores"]):
-                return 'Both/HVAC'
+            if any(word in measure for word in ["gasóleo", "diesel", "caldera"]): return 'Gas/Fuel'
+            if any(word in measure for word in ["led", "iluminación", "fotovoltaica", "eléctrico", "potencia", "reactiva", "variadores", "bombas"]): return 'Electric'
+            if any(word in measure for word in ["climatización", "temperatura", "hvac", "aislamiento", "cortina", "recuperadores"]): return 'Both/HVAC'
             return 'Operational/N/A'
         df_in['Category'] = df_in['Measure'].apply(get_type)
         return df_in
@@ -115,13 +113,10 @@ if not df_original.empty:
     # --- Sidebar for All User Filters ---
     with st.sidebar:
         st.title('⚡ Asepeyo Filters')
-        analysis_type = st.radio(
-            "Select Analysis Type",
-            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio', 'Tipo de Energía')
-        )
+        analysis_type = st.radio("Select Analysis Type", ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio', 'Tipo de Energía'))
         show_percentage = st.toggle('Show percentage values')
         st.markdown("---")
-        detailed_view = st.toggle('Show Detailed Center View', key='detailed_view')
+        detailed_view = st.toggle('Show Detailed Center View')
         
         community_list = sorted(df_original['Comunidad Autónoma'].unique().tolist())
         if st.button("All Communities", use_container_width=True):
@@ -165,18 +160,24 @@ if not df_original.empty:
     else:
         df_filtered = pd.DataFrame(columns=df_categorized.columns)
 
-# --- Main Panel Rendering ---
-st.title("Energy Efficiency Analysis")
+    # --- Main Panel Rendering ---
+    st.title("Energy Efficiency Analysis")
 
-# Header Logic
-if not selected_communities:
-    st.warning("Please select at least one community to view data.")
-elif detailed_view and not selected_centers:
-    st.warning(f"Please select at least one center for detailed comparison.")
-elif detailed_view:
-    st.header(f"Comparing {len(selected_centers)} centers across {len(selected_communities)} communities")
-else:
-    st.header(f"Summarized view for {len(selected_communities)} communities")
+    if not df_filtered.empty:
+        # Generate the full measure code ONLY for the relevant analysis type
+        if analysis_type == 'Tipo de Medida':
+            df_filtered['Frequency'] = df_filtered.groupby(['Comunidad Autónoma', 'Measure Code Base']).cumcount() + 1
+            df_filtered['Measure Code'] = df_filtered.apply(
+                lambda row: f"{row['Measure Code Base']}.{row['Frequency']}" if row['Measure Code Base'] != 'Z.Z' else 'Uncategorized', axis=1)
+        
+        # Header Logic
+        if detailed_view and not selected_centers:
+            st.warning("Please select at least one center for detailed comparison.")
+        elif detailed_view:
+            st.header(f"Comparing {len(selected_centers)} centers across {len(selected_communities)} communities")
+        else:
+            st.header(f"Summarized view for {len(selected_communities)} communities")
+
 
 # KPI and Chart Rendering
 if not df_filtered.empty:
@@ -284,51 +285,45 @@ if not df_filtered.empty:
         fig_sankey.update_layout(title_text=f"Flow from Category to {group_by_col} by Investment", font_size=12)
         st.plotly_chart(fig_sankey, use_container_width=True)
 
-    # --- Data Tables Section ---
-    st.markdown("---")
-    st.header("Data Tables")
-    
-    # Table 1: Measure Coding System - This table is only shown for the 'Tipo de Medida' analysis
-    if analysis_type == 'Tipo de Medida':
-        st.subheader("1. Measure Coding System")
-        if 'measure_mapping' in locals():
+        # --- Data Tables Section ---
+        st.markdown("---")
+        st.header("Data Tables")
+
+        # Table 1: Measure Coding System - ONLY shown for 'Tipo de Medida'
+        if analysis_type == 'Tipo de Medida':
+            st.subheader("1. Measure Coding System")
             code_explanation_df = pd.DataFrame(measure_mapping.items(), columns=['Measure Description', 'Info'])
             code_explanation_df['Category'] = code_explanation_df['Info'].apply(lambda x: x['Category'])
             code_explanation_df['Code Prefix'] = code_explanation_df['Info'].apply(lambda x: x['Code'])
-            st.dataframe(
-                code_explanation_df[['Category', 'Measure Description', 'Code Prefix']].sort_values(by=['Code Prefix']),
-                use_container_width=True,
-                hide_index=True
-            )
-    
-    # Table 2: Detailed Financials per Measure - This table is now visible for ALL analysis types
-    st.subheader("2. Detailed Data per Measure")
-    
-    # Define the base columns that are always visible
-    columns_to_display = [
-        group_by_col,
-        'Measure',
-        'Category',
-        'Investment',
-        'Energy Saved',
-        'Money Saved',
-        'Pay back period'
-    ]
-    
-    # Add the 'Measure Code' column only if it exists for the current view
-    if analysis_type == 'Tipo de Medida' and 'Measure Code' in df_filtered.columns:
-        columns_to_display.insert(1, 'Measure Code')
-    
-    # Create and display the dataframe
-    financial_table_df = df_filtered[columns_to_display].sort_values(by=[group_by_col])
-    st.dataframe(
-        financial_table_df,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Investment": st.column_config.NumberColumn("Investment (€)", format="€ %d"),
-            "Energy Saved": st.column_config.NumberColumn("Energy Saved (kWh)", format="%d kWh"),
-            "Money Saved": st.column_config.NumberColumn("Money Saved (€/year)", format="€ %d"),
-            "Pay back period": st.column_config.NumberColumn("Payback (years)", format="%.1f years"),
-        }
-    )
+            st.dataframe(code_explanation_df[['Category', 'Measure Description', 'Code Prefix']].sort_values(by=['Code Prefix']), use_container_width=True, hide_index=True)
+
+        # Table 2: Detailed Financials per Measure - ALWAYS visible
+        st.subheader("2. Detailed Data per Measure")
+        
+        columns_to_display = [group_by_col, 'Measure', 'Category', 'Investment', 'Energy Saved', 'Money Saved', 'Pay back period']
+        if analysis_type == 'Tipo de Medida' and 'Measure Code' in df_filtered.columns:
+            columns_to_display.insert(1, 'Measure Code')
+
+        financial_table_df = df_filtered[columns_to_display].sort_values(by=[group_by_col])
+        st.dataframe(
+            financial_table_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Investment": st.column_config.NumberColumn("Investment (€)", format="€ %d"),
+                "Energy Saved": st.column_config.NumberColumn("Energy Saved (kWh)", format="%d kWh"),
+                "Money Saved": st.column_config.NumberColumn("Money Saved (€/year)", format="€ %d"),
+                "Pay back period": st.column_config.NumberColumn("Payback (years)", format="%.1f years"),
+            }
+        )
+    else:
+        st.info("No data available for the current filter selection.")
+else:
+    st.warning("Data could not be loaded. Please check the file path and try again.")
+
+
+
+
+
+
+
