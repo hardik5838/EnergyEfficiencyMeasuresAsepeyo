@@ -304,13 +304,37 @@ if not df_filtered.empty:
             fig_bubble.update_layout(xaxis_title="Investment (€)", yaxis_title="Annual Money Saved (€)", legend_title=analysis_type, template="plotly_white")
             st.plotly_chart(fig_bubble, use_container_width=True)
 
-    with adv_col2:
+   with adv_col2:
         st.subheader("Project Payback Distribution")
         payback_data = df_filtered[df_filtered['Pay back period'] > 0]
+        
         if not payback_data.empty:
-            fig_hist = px.histogram(payback_data, x='Pay back period', nbins=20, title="Distribution of Payback Periods")
-            fig_hist.update_layout(xaxis_title="Payback Period (Years)", yaxis_title="Number of Measures", template="plotly_white")
+            if show_percentage:
+                # Use histnorm='percent' to automatically show percentages
+                histnorm_val = 'percent'
+                y_axis_title = '% of Total Measures'
+                title_text = "Percentage Distribution of Payback Periods"
+            else:
+                histnorm_val = None
+                y_axis_title = 'Number of Measures'
+                title_text = "Distribution of Payback Periods"
+    
+            fig_hist = px.histogram(
+                payback_data,
+                x='Pay back period',
+                nbins=20,
+                histnorm=histnorm_val, # This is the key change
+                template="plotly_white",
+                title=title_text
+            )
+            
+            fig_hist.update_layout(
+                xaxis_title="Payback Period (Years)",
+                yaxis_title=y_axis_title
+            )
             st.plotly_chart(fig_hist, use_container_width=True)
+        else:
+            st.info("No data with a payback period to display in the histogram.")
 
     st.markdown("---")
     st.subheader("Investment & Savings Flow (Sankey Diagram)")
