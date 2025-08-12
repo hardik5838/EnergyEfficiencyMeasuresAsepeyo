@@ -169,15 +169,6 @@ if not df_original.empty:
                 lambda row: f"{row['Measure Code Base']}.{row['Frequency']}" if row['Measure Code Base'] != 'Z.Z' else 'Uncategorized', axis=1)
         
         group_by_col = 'Center' if detailed_view else 'Comunidad Autónoma'
-        
-    # --- Main Panel Rendering ---
-    st.title("Energy Efficiency Analysis")
-
-    if not df_filtered.empty:
-        if analysis_type == 'Tipo de Medida':
-            df_filtered['Frequency'] = df_filtered.groupby(['Comunidad Autónoma', 'Measure Code Base']).cumcount() + 1
-            df_filtered['Measure Code'] = df_filtered.apply(
-                lambda row: f"{row['Measure Code Base']}.{row['Frequency']}" if row['Measure Code Base'] != 'Z.Z' else 'Uncategorized', axis=1)
 
         # Header Logic
         if detailed_view and not selected_centers:
