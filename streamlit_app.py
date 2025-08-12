@@ -243,9 +243,52 @@ if not df_filtered.empty:
         st.plotly_chart(fig6, use_container_width=True)
         
         st.subheader("Investment vs. Financial Savings")
-        fin_summary = df_filtered.groupby(group_by_col).agg(Total_Investment=('Investment', 'sum'), Total_Money_Saved=('Money Saved', 'sum')).reset_index()
-        fig7 = px.scatter(fin_summary, x='Total_Investment', y='Total_Money_Saved', text=group_by_col, size='Total_Investment', color=group_by_col, title=f'Investment vs. Money Saved per {group_by_col}')
+        fin_summary = df_filtered.groupby(group_by_col).agg(
+            Total_Investment=('Investment', 'sum'),
+            Total_Money_Saved=('Money Saved', 'sum')
+        ).reset_index()
+        
+        if show_percentage and not fin_summary.empty:
+            # Calculate totals for percentage calculation
+            total_investment_all = fin_summary['Total_Investment'].sum()
+            total_savings_all = fin_summary['Total_Money_Saved'].sum()
+            
+            # Avoid division by zero
+            if total_investment_all > 0:
+                fin_summary['Investment %'] = (fin_summary['Total_Investment'] / total_investment_all) * 100
+            else:
+                fin_summary['Investment %'] = 0
+                
+            if total_savings_all > 0:
+                fin_summary['Savings %'] = (fin_summary['Total_Money_Saved'] / total_savings_all) * 100
+            else:
+                fin_summary['Savings %'] = 0
+        
+            # Create the percentage-based plot
+            fig7 = px.scatter(
+                fin_summary,
+                x='Investment %',
+                y='Savings %',
+                text=group_by_col,
+                size='Total_Investment',
+                color=group_by_col,
+                title=f'% Contribution to Investment vs. Savings',
+                labels={'Investment %': '% of Total Investment', 'Savings %': '% of Total Savings'}
+            )
+        else:
+            # Create the original absolute value plot
+            fig7 = px.scatter(
+                fin_summary,
+                x='Total_Investment',
+                y='Total_Money_Saved',
+                text=group_by_col,
+                size='Total_Investment',
+                color=group_by_col,
+                title=f'Investment vs. Money Saved per {group_by_col}'
+            )
+        
         fig7.update_traces(textposition='top center')
+        fig7.update_layout(xaxis_title="Investment (€)", yaxis_title="Annual Money Saved (€)", template="plotly_white")
         st.plotly_chart(fig7, use_container_width=True)
     
     # --- Advanced Analysis Section ---
