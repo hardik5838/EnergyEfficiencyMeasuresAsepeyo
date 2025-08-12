@@ -304,7 +304,7 @@ if not df_filtered.empty:
             fig_bubble.update_layout(xaxis_title="Investment (€)", yaxis_title="Annual Money Saved (€)", legend_title=analysis_type, template="plotly_white")
             st.plotly_chart(fig_bubble, use_container_width=True)
 
-   with adv_col2:
+    with adv_col2:
         st.subheader("Project Payback Distribution")
         payback_data = df_filtered[df_filtered['Pay back period'] > 0]
         
