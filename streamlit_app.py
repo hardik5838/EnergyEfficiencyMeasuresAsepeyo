@@ -159,6 +159,7 @@ if not df_original.empty:
         df_filtered = pd.DataFrame(columns=df_categorized.columns)
 
     # --- Main Panel Rendering ---
+    st.image("Logo_ASEPEYO.png", width=250)
     st.title("Energy Efficiency Analysis")
 
     if not df_filtered.empty:
