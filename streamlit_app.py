@@ -1,436 +1,450 @@
-# Import libraries
+# Importar librerías
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-# Page configuration
+# Configuración de la página
 st.set_page_config(
-    page_title="Asepeyo Energy Efficiency Dashboard",
+    page_title="Dashboard de Eficiencia Energética Asepeyo",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- Data Loading and Caching ---
+# --- Carga y Cacheo de Datos ---
 @st.cache_data
 def load_data(file_path):
-    """Loads, cleans, and processes the energy audit data."""
+    """Carga, limpia y procesa los datos de la auditoría energética."""
     try:
         df = pd.read_csv(file_path)
+        # Limpiar espacios en los nombres de las columnas
         df.columns = df.columns.str.strip()
-        for col in ['Energy Saved', 'Money Saved', 'Investment', 'Pay back period']:
+        # Renombrar columnas al español para consistencia en el código
+        df.rename(columns={
+            'Center': 'Centro',
+            'Measure': 'Medida',
+            'Energy Saved': 'Ahorro energético',
+            'Money Saved': 'Ahorro económico',
+            'Investment': 'Inversión',
+            'Pay back period': 'Periodo de retorno'
+        }, inplace=True)
+        # Asegurar que las columnas numéricas sean del tipo correcto
+        for col in ['Ahorro energético', 'Ahorro económico', 'Inversión', 'Periodo de retorno']:
             df[col] = pd.to_numeric(df[col], errors='coerce')
+        # Rellenar valores nulos con 0
         df.fillna(0, inplace=True)
         return df
     except FileNotFoundError:
-        st.error(f"Error: The data file was not found. Please ensure '2025 Energy Audit summary - Sheet1 (1).csv' exists.")
+        st.error(f"Error: No se encontró el archivo de datos. Por favor, asegúrese de que el archivo exista en la ruta especificada.")
         return pd.DataFrame()
 
-# --- Main Application Logic ---
+# --- Lógica Principal de la Aplicación ---
 df_original = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
 
 if not df_original.empty:
 
-    # --- Session State Initialization ---
-    if 'selected_centers' not in st.session_state:
-        st.session_state.selected_centers = []
-    if 'selected_communities' not in st.session_state:
-        st.session_state.selected_communities = sorted(df_original['Comunidad Autónoma'].unique().tolist())
+    # --- Inicialización del Estado de la Sesión ---
+    if 'centros_seleccionados' not in st.session_state:
+        st.session_state.centros_seleccionados = []
+    if 'comunidades_seleccionadas' not in st.session_state:
+        st.session_state.comunidades_seleccionadas = sorted(df_original['Comunidad Autónoma'].unique().tolist())
 
-    # --- Centralized and Improved Measure Mapping ---
-    measure_mapping = {
-        "Regulación de la temperatura de consigna": {"Category": "Thermal control measures", "Code": "A.1"},
-        "Sustitución de equipos de climatización": {"Category": "Thermal control measures", "Code": "A.2"},
-        "Instalación cortina de aire": {"Category": "Thermal control measures", "Code": "A.3"},
-        "Instalación de temporizador digital": {"Category": "Thermal control measures", "Code": "A.4"},
-        "Regulación de ventilación mediante sonda de CO2": {"Category": "Thermal control measures", "Code": "A.5"},
-        "Recuperadores de calor": {"Category": "Thermal control measures", "Code": "A.6"},
-        "Ajuste O2 en caldera gasóleo C": {"Category": "Thermal control measures", "Code": "A.7"},
-        "Instalación de Variadores de frecuencia en bombas hidráulicas": {"Category": "Thermal control measures", "Code": "A.8"},
-        "Instalación Solar térmica": {"Category": "Thermal control measures", "Code": "A.9"},
-        "Optimización de la potencia contratada": {"Category": "Energy management measures", "Code": "B.1"},
-        "Sistema de Gestión Energética": {"Category": "Energy management measures", "Code": "B.2"},
-        "Eliminación de la energía reactiva": {"Category": "Energy management measures", "Code": "B.3"},
-        "Reducción del consumo remanente": {"Category": "Energy management measures", "Code": "B.4"},
-        "Promover la cultura energética": {"Category": "Energy management measures", "Code": "B.5"},
-        "Instalación Fotovoltaica": {"Category": "Energy management measures", "Code": "B.6"},
-        "Cambio Iluminacion LED": {"Category": "Lighting control measures", "Code": "C.1"},
-        "Instalación regletas programables": {"Category": "Lighting control measures", "Code": "C.2"},
-        "Mejora en el control de la iluminación": {"Category": "Lighting control measures", "Code": "C.3"}
+    # --- Mapeo de Medidas Centralizado y Mejorado ---
+    mapeo_medidas = {
+        "Regulación de la temperatura de consigna": {"Category": "Medidas de control térmico", "Code": "A.1"},
+        "Sustitución de equipos de climatización": {"Category": "Medidas de control térmico", "Code": "A.2"},
+        "Instalación cortina de aire": {"Category": "Medidas de control térmico", "Code": "A.3"},
+        "Instalación de temporizador digital": {"Category": "Medidas de control térmico", "Code": "A.4"},
+        "Regulación de ventilación mediante sonda de CO2": {"Category": "Medidas de control térmico", "Code": "A.5"},
+        "Recuperadores de calor": {"Category": "Medidas de control térmico", "Code": "A.6"},
+        "Ajuste O2 en caldera gasóleo C": {"Category": "Medidas de control térmico", "Code": "A.7"},
+        "Instalación de Variadores de frecuencia en bombas hidráulicas": {"Category": "Medidas de control térmico", "Code": "A.8"},
+        "Instalación Solar térmica": {"Category": "Medidas de control térmico", "Code": "A.9"},
+        "Optimización de la potencia contratada": {"Category": "Medidas de gestión energética", "Code": "B.1"},
+        "Sistema de Gestión Energética": {"Category": "Medidas de gestión energética", "Code": "B.2"},
+        "Eliminación de la energía reactiva": {"Category": "Medidas de gestión energética", "Code": "B.3"},
+        "Reducción del consumo remanente": {"Category": "Medidas de gestión energética", "Code": "B.4"},
+        "Promover la cultura energética": {"Category": "Medidas de gestión energética", "Code": "B.5"},
+        "Instalación Fotovoltaica": {"Category": "Medidas de gestión energética", "Code": "B.6"},
+        "Cambio Iluminacion LED": {"Category": "Medidas de control de iluminación", "Code": "C.1"},
+        "Instalación regletas programables": {"Category": "Medidas de control de iluminación", "Code": "C.2"},
+        "Mejora en el control de la iluminación": {"Category": "Medidas de control de iluminación", "Code": "C.3"}
     }
     
-    # --- Helper Functions for Categorization ---
-    def categorize_by_tipo(df_in):
-        def get_info(measure_text):
-            for standard_name, info in measure_mapping.items():
-                if standard_name.lower() in measure_text.lower():
+    # --- Funciones Auxiliares para la Categorización ---
+    def categorizar_por_tipo(df_in):
+        def get_info(texto_medida):
+            for nombre_estandar, info in mapeo_medidas.items():
+                if nombre_estandar.lower() in texto_medida.lower():
                     return pd.Series([info['Category'], info['Code']])
-            return pd.Series(['Uncategorized', 'Z.Z'])
-        df_in[['Category', 'Measure Code Base']] = df_in['Measure'].apply(get_info)
+            return pd.Series(['Sin categorizar', 'Z.Z'])
+        df_in[['Categoría', 'Base Código Medida']] = df_in['Medida'].apply(get_info)
         return df_in
 
-    def categorize_by_intervention(df_in):
-        def get_type(measure):
-            measure = measure.lower()
-            if any(word in measure for word in ["instalación", "batería", "recuperadores", "solar", "fotovoltaica"]): return 'New System Installation'
-            if any(word in measure for word in ["sustitución", "cambio", "mejora", "aislamiento"]): return 'Equipment Retrofit & Upgrade'
-            if any(word in measure for word in ["prácticas", "cultura", "regulación", "optimización", "reducción"]): return 'Operational & Behavioral'
-            return 'Specific Interventions'
-        df_in['Category'] = df_in['Measure'].apply(get_type)
+    def categorizar_por_intervencion(df_in):
+        def get_type(medida):
+            medida = medida.lower()
+            if any(word in medida for word in ["instalación", "batería", "recuperadores", "solar", "fotovoltaica"]): return 'Instalación de Nuevos Sistemas'
+            if any(word in medida for word in ["sustitución", "cambio", "mejora", "aislamiento"]): return 'Reforma y Actualización de Equipos'
+            if any(word in medida for word in ["prácticas", "cultura", "regulación", "optimización", "reducción"]): return 'Operacional y Comportamental'
+            return 'Intervenciones Específicas'
+        df_in['Categoría'] = df_in['Medida'].apply(get_type)
         return df_in
 
-    def categorize_by_financials(df_in):
-        def get_type(payback):
-            if payback <= 0: return 'No Cost / Immediate'
-            if payback < 2: return 'Quick Wins (< 2 years)'
-            if payback <= 5: return 'Standard Projects (2-5 years)'
-            return 'Strategic Investments (> 5 years)'
-        df_in['Category'] = df_in['Pay back period'].apply(get_type)
+    def categorizar_por_financiero(df_in):
+        def get_type(retorno):
+            if retorno <= 0: return 'Sin Coste / Inmediato'
+            if retorno < 2: return 'Resultados Rápidos (< 2 años)'
+            if retorno <= 5: return 'Proyectos Estándar (2-5 años)'
+            return 'Inversiones Estratégicas (> 5 años)'
+        df_in['Categoría'] = df_in['Periodo de retorno'].apply(get_type)
         return df_in
 
-    def categorize_by_function(df_in):
-        def get_type(measure):
-            measure = measure.lower()
-            if any(word in measure for word in ["hvac", "climatización", "temperatura", "ventilación", "aislamiento", "cortina", "calor", "termo"]): return 'Building Envelope & HVAC'
-            if any(word in measure for word in ["led", "iluminación", "luminarias", "eléctrico", "potencia", "reactiva", "condensadores", "regletas"]): return 'Lighting & Electrical'
-            if any(word in measure for word in ["gestión", "fotovoltaica", "solar", "prácticas", "remanente", "cultura"]): return 'Energy Management & Strategy'
-            return 'Other Functions'
-        df_in['Category'] = df_in['Measure'].apply(get_type)
+    def categorizar_por_funcion(df_in):
+        def get_type(medida):
+            medida = medida.lower()
+            if any(word in medida for word in ["hvac", "climatización", "temperatura", "ventilación", "aislamiento", "cortina", "calor", "termo"]): return 'Envolvente y Climatización (HVAC)'
+            if any(word in medida for word in ["led", "iluminación", "luminarias", "eléctrico", "potencia", "reactiva", "condensadores", "regletas"]): return 'Iluminación y Electricidad'
+            if any(word in medida for word in ["gestión", "fotovoltaica", "solar", "prácticas", "remanente", "cultura"]): return 'Gestión y Estrategia Energética'
+            return 'Otras Funciones'
+        df_in['Categoría'] = df_in['Medida'].apply(get_type)
         return df_in
         
-    def categorize_by_energy_saved(df_in):
-        def get_type(measure):
-            measure = measure.lower()
-            if any(word in measure for word in ["gasóleo", "diesel", "caldera", "térmica"]): return 'Thermal Savings (Gas/Fuel)'
-            if any(word in measure for word in ["led", "iluminación", "fotovoltaica", "eléctrico", "potencia", "reactiva", "variadores", "bombas", "regletas"]): return 'Electric Savings'
-            return 'Mixed/Operational'
-        df_in['Category'] = df_in['Measure'].apply(get_type)
+    def categorizar_por_ahorro_energetico(df_in):
+        def get_type(medida):
+            medida = medida.lower()
+            if any(word in medida for word in ["gasóleo", "diesel", "caldera", "térmica"]): return 'Ahorros Térmicos (Gas/Combustible)'
+            if any(word in medida for word in ["led", "iluminación", "fotovoltaica", "eléctrico", "potencia", "reactiva", "variadores", "bombas", "regletas"]): return 'Ahorros Eléctricos'
+            return 'Mixto / Operacional'
+        df_in['Categoría'] = df_in['Medida'].apply(get_type)
         return df_in
 
-    # --- Sidebar for All User Filters ---
+    # --- Barra Lateral para Filtros de Usuario ---
     with st.sidebar:
-        st.title('⚡ Asepeyo Filters')
-        analysis_type = st.radio("Select Analysis Type", ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio', 'Tipo de Ahorro Energético'))
-        show_percentage = st.toggle('Show percentage values')
+        st.title('⚡ Filtros Asepeyo')
+        tipo_analisis = st.radio(
+            "Seleccionar Tipo de Análisis",
+            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio', 'Tipo de Ahorro Energético')
+        )
+        mostrar_porcentaje = st.toggle('Mostrar valores en porcentaje')
         st.markdown("---")
-        detailed_view = st.toggle('Show Detailed Center View')
+        vista_detallada = st.toggle('Mostrar vista detallada por centro')
         
-        community_list = sorted(df_original['Comunidad Autónoma'].unique().tolist())
-        if st.button("All Communities", use_container_width=True):
-            st.session_state.selected_communities = community_list
+        lista_comunidades = sorted(df_original['Comunidad Autónoma'].unique().tolist())
+        if st.button("Todas las Comunidades", use_container_width=True):
+            st.session_state.comunidades_seleccionadas = lista_comunidades
         
-        selected_communities = st.multiselect('Select Communities', community_list, default=st.session_state.selected_communities)
-        st.session_state.selected_communities = selected_communities
+        comunidades_seleccionadas = st.multiselect('Seleccionar Comunidades', lista_comunidades, default=st.session_state.comunidades_seleccionadas)
+        st.session_state.comunidades_seleccionadas = comunidades_seleccionadas
 
-        if detailed_view:
-            if selected_communities:
-                available_centers = sorted(df_original[df_original['Comunidad Autónoma'].isin(selected_communities)]['Center'].unique().tolist())
-                if not all(center in available_centers for center in st.session_state.selected_centers):
-                    st.session_state.selected_centers = available_centers
+        if vista_detallada:
+            if comunidades_seleccionadas:
+                centros_disponibles = sorted(df_original[df_original['Comunidad Autónoma'].isin(comunidades_seleccionadas)]['Centro'].unique().tolist())
+                # Si la selección de comunidad cambia, resetea los centros seleccionados para evitar inconsistencias
+                if not all(centro in centros_disponibles for centro in st.session_state.centros_seleccionados):
+                    st.session_state.centros_seleccionados = centros_disponibles
                 
-                st.write("Manage Center Selection:")
+                st.write("Gestionar Selección de Centros:")
                 col1, col2 = st.columns([0.7, 0.3])
                 with col1:
-                    selected_centers = st.multiselect('Select Centers', available_centers, default=st.session_state.selected_centers, label_visibility="collapsed")
+                    centros_seleccionados = st.multiselect('Seleccionar Centros', centros_disponibles, default=st.session_state.centros_seleccionados, label_visibility="collapsed")
                 with col2:
-                    if st.button("All", help="Select all centers"):
-                        st.session_state.selected_centers = available_centers
-                        st.experimental_rerun()
-                st.session_state.selected_centers = selected_centers
+                    if st.button("Todos", help="Seleccionar todos los centros"):
+                        st.session_state.centros_seleccionados = centros_disponibles
+                        st.rerun() # Usar st.rerun() que es la función más moderna
+                st.session_state.centros_seleccionados = centros_seleccionados
             else:
-                selected_centers = []
+                centros_seleccionados = []
         else:
-            selected_centers = []
+            centros_seleccionados = []
 
-    # --- Data Processing based on Filters ---
-    df_categorized = {
-        'Tipo de Intervención': categorize_by_intervention,
-        'Impacto Financiero': categorize_by_financials,
-        'Función de Negocio': categorize_by_function,
-        'Tipo de Ahorro Energético': categorize_by_energy_saved,
-    }.get(analysis_type, categorize_by_tipo)(df_original.copy())
+    # --- Procesamiento de Datos según los Filtros ---
+    mapa_funciones_categorizacion = {
+        'Tipo de Medida': categorizar_por_tipo,
+        'Tipo de Intervención': categorizar_por_intervencion,
+        'Impacto Financiero': categorizar_por_financiero,
+        'Función de Negocio': categorizar_por_funcion,
+        'Tipo de Ahorro Energético': categorizar_por_ahorro_energetico,
+    }
+    funcion_a_usar = mapa_funciones_categorizacion.get(tipo_analisis)
+    df_categorizado = funcion_a_usar(df_original.copy())
 
-    if selected_communities:
-        df_filtered = df_categorized[df_categorized['Comunidad Autónoma'].isin(selected_communities)]
-        if detailed_view and selected_centers:
-            df_filtered = df_filtered[df_filtered['Center'].isin(selected_centers)]
+    # Aplicar filtros de selección
+    if comunidades_seleccionadas:
+        df_filtrado = df_categorizado[df_categorizado['Comunidad Autónoma'].isin(comunidades_seleccionadas)]
+        if vista_detallada and centros_seleccionados:
+            df_filtrado = df_filtrado[df_filtrado['Centro'].isin(centros_seleccionados)]
     else:
-        df_filtered = pd.DataFrame(columns=df_categorized.columns)
+        df_filtrado = pd.DataFrame(columns=df_categorizado.columns)
 
-    # --- Main Panel Rendering ---
+    # --- Renderizado del Panel Principal ---
     st.image("Logo_ASEPEYO.png", width=250)
-    st.title("Energy Efficiency Analysis")
+    st.title("Análisis de Eficiencia Energética")
 
-    if not df_filtered.empty:
-        # Generate the full measure code ONLY for the relevant analysis type
-        if analysis_type == 'Tipo de Medida':
-            df_filtered['Frequency'] = df_filtered.groupby(['Comunidad Autónoma', 'Measure Code Base']).cumcount() + 1
-            df_filtered['Measure Code'] = df_filtered.apply(
-                lambda row: f"{row['Measure Code Base']}.{row['Frequency']}" if row['Measure Code Base'] != 'Z.Z' else 'Uncategorized', axis=1)
+    if not df_filtrado.empty:
+        # Generar el código de medida completo SÓLO para el tipo de análisis relevante
+        if tipo_analisis == 'Tipo de Medida':
+            df_filtrado['Frecuencia'] = df_filtrado.groupby(['Comunidad Autónoma', 'Base Código Medida']).cumcount() + 1
+            df_filtrado['Código Medida'] = df_filtrado.apply(
+                lambda row: f"{row['Base Código Medida']}.{row['Frecuencia']}" if row['Base Código Medida'] != 'Z.Z' else 'Sin categorizar', axis=1)
         
-        group_by_col = 'Center' if detailed_view else 'Comunidad Autónoma'
+        columna_agrupar = 'Centro' if vista_detallada else 'Comunidad Autónoma'
 
-        # Header Logic
-        if detailed_view and not selected_centers:
-            st.warning("Please select at least one center for detailed comparison.")
-        elif detailed_view:
-            st.header(f"Comparing {len(selected_centers)} centers across {len(selected_communities)} communities")
+        # Lógica de Encabezados
+        if vista_detallada and not centros_seleccionados:
+            st.warning("Por favor, seleccione al menos un centro para la comparación detallada.")
+        elif vista_detallada:
+            st.header(f"Comparando {len(centros_seleccionados)} centros en {len(comunidades_seleccionadas)} comunidades")
         else:
-            st.header(f"Summarized view for {len(selected_communities)} communities")
+            st.header(f"Vista resumida para {len(comunidades_seleccionadas)} comunidades")
 
-
-# KPI and Chart Rendering
-if not df_filtered.empty:
-    total_investment = df_filtered['Investment'].sum()
-    total_money_saved = df_filtered['Money Saved'].sum()
-    total_energy_saved = df_filtered['Energy Saved'].sum()
-    roi = (total_money_saved / total_investment) * 100 if total_investment > 0 else 0
+# Renderizado de KPIs y Gráficos
+if not df_filtrado.empty:
+    inversion_total = df_filtrado['Inversión'].sum()
+    ahorro_economico_total = df_filtrado['Ahorro económico'].sum()
+    ahorro_energetico_total = df_filtrado['Ahorro energético'].sum()
+    roi = (ahorro_economico_total / inversion_total) * 100 if inversion_total > 0 else 0
 
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-    kpi1.metric(label="Total Investment", value=f"€ {total_investment:,.0f}")
-    kpi2.metric(label="Total Money Saved", value=f"€ {total_money_saved:,.0f}")
-    kpi3.metric(label="Total Energy Saved", value=f"{total_energy_saved:,.0f} kWh")
-    kpi4.metric(label="Return on Investment (ROI)", value=f"{roi:.2f} %")
+    kpi1.metric(label="Inversión Total", value=f"€ {inversion_total:,.0f}")
+    kpi2.metric(label="Ahorro Económico Total", value=f"€ {ahorro_economico_total:,.0f}")
+    kpi3.metric(label="Ahorro Energético Total", value=f"{ahorro_energetico_total:,.0f} kWh")
+    kpi4.metric(label="Retorno de la Inversión (ROI)", value=f"{roi:.2f} %")
     st.markdown("---")
 
-    group_by_col = 'Center' if detailed_view else 'Comunidad Autónoma'
+    columna_agrupar = 'Centro' if vista_detallada else 'Comunidad Autónoma'
     col1, col2 = st.columns(2, gap="large")
 
     with col1:
-        st.subheader(f"Measure Counts by {analysis_type}")
-        # Aggregate data to include measure details for hover
-        agg_data = df_filtered.groupby([group_by_col, 'Category']).agg(
-            Count=('Measure', 'size'),
-            Measures=('Measure', lambda x: '<br>'.join(x.unique()))
+        st.subheader(f"Recuento de Medidas por {tipo_analisis}")
+        # Agregar datos para incluir detalles de medidas en el hover
+        datos_agregados = df_filtrado.groupby([columna_agrupar, 'Categoría']).agg(
+            Recuento=('Medida', 'size'),
+            Medidas=('Medida', lambda x: '<br>'.join(x.unique()))
         ).reset_index()
 
-        if show_percentage:
-            total_counts = agg_data.groupby(group_by_col)['Count'].transform('sum')
-            agg_data['Percentage'] = (agg_data['Count'] / total_counts) * 100
-            y_val, y_label = 'Percentage', 'Percentage of Measures (%)'
+        if mostrar_porcentaje:
+            recuentos_totales = datos_agregados.groupby(columna_agrupar)['Recuento'].transform('sum')
+            datos_agregados['Porcentaje'] = (datos_agregados['Recuento'] / recuentos_totales) * 100
+            y_val, y_label = 'Porcentaje', 'Porcentaje de Medidas (%)'
         else:
-            y_val, y_label = 'Count', 'Number of Measures'
+            y_val, y_label = 'Recuento', 'Número de Medidas'
 
-        fig1 = px.bar(agg_data, x=group_by_col, y=y_val, color='Category', hover_data=['Measures'], title=f'Measure Counts per {group_by_col}')
-        fig1.update_layout(yaxis_title=y_label, xaxis_title=group_by_col, legend_title=analysis_type, template="plotly_white")
+        fig1 = px.bar(datos_agregados, x=columna_agrupar, y=y_val, color='Categoría', hover_data=['Medidas'], title=f'Recuento de Medidas por {columna_agrupar}')
+        fig1.update_layout(yaxis_title=y_label, xaxis_title=columna_agrupar, legend_title=tipo_analisis, template="plotly_white")
         st.plotly_chart(fig1, use_container_width=True)
 
-        st.subheader("Energy Savings Analysis")
-        energy_agg = df_filtered.groupby(group_by_col).agg(
-            Total_Energy_Saved=('Energy Saved', 'sum'),
-            Measures=('Measure', lambda x: '<br>'.join(x.unique()))
+        st.subheader("Análisis de Ahorro Energético")
+        agg_energia = df_filtrado.groupby(columna_agrupar).agg(
+            Ahorro_Total_Energia=('Ahorro energético', 'sum'),
+            Medidas=('Medida', lambda x: '<br>'.join(x.unique()))
         ).reset_index()
 
-        if show_percentage:
-            total_savings_overall = energy_agg['Total_Energy_Saved'].sum()
-            energy_agg['Percentage'] = (energy_agg['Total_Energy_Saved'] / total_savings_overall) * 100 if total_savings_overall > 0 else 0
-            y_val, y_label = 'Percentage', 'Contribution to Total Savings (%)'
+        if mostrar_porcentaje:
+            ahorro_general_total = agg_energia['Ahorro_Total_Energia'].sum()
+            agg_energia['Porcentaje'] = (agg_energia['Ahorro_Total_Energia'] / ahorro_general_total) * 100 if ahorro_general_total > 0 else 0
+            y_val, y_label = 'Porcentaje', 'Contribución al Ahorro Total (%)'
         else:
-            y_val, y_label = 'Total_Energy_Saved', 'Energy Saved (kWh)'
+            y_val, y_label = 'Ahorro_Total_Energia', 'Ahorro Energético (kWh)'
 
-        fig5 = px.bar(energy_agg.sort_values('Total_Energy_Saved', ascending=False), x=group_by_col, y=y_val, hover_data=['Measures'], title=f'Energy Savings per {group_by_col}')
-        fig5.update_layout(yaxis_title=y_label, xaxis_title=group_by_col, template="plotly_white")
+        fig5 = px.bar(agg_energia.sort_values('Ahorro_Total_Energia', ascending=False), x=columna_agrupar, y=y_val, hover_data=['Medidas'], title=f'Ahorro Energético por {columna_agrupar}')
+        fig5.update_layout(yaxis_title=y_label, xaxis_title=columna_agrupar, template="plotly_white")
         st.plotly_chart(fig5, use_container_width=True)
 
     with col2:
-        st.subheader("Economic Savings Analysis")
-        eco_agg = df_filtered.groupby(group_by_col).agg(
-            Total_Money_Saved=('Money Saved', 'sum'),
-            Measure_Count=('Measure', 'size')
+        st.subheader("Análisis de Ahorro Económico")
+        agg_eco = df_filtrado.groupby(columna_agrupar).agg(
+            Ahorro_Total_Economico=('Ahorro económico', 'sum'),
+            Recuento_Medidas=('Medida', 'size')
         ).reset_index()
-        fig6 = px.pie(eco_agg, names=group_by_col, values='Total_Money_Saved', title=f'Contribution to Economic Savings by {group_by_col}', hole=0.4, hover_data=['Measure_Count'])
-        fig6.update_traces(hovertemplate='<b>%{label}</b><br>Money Saved: €%{value:,.0f}<br>Measure Count: %{customdata[0]}<extra></extra>')
+        fig6 = px.pie(agg_eco, names=columna_agrupar, values='Ahorro_Total_Economico', title=f'Contribución al Ahorro Económico por {columna_agrupar}', hole=0.4, hover_data=['Recuento_Medidas'])
+        fig6.update_traces(hovertemplate='<b>%{label}</b><br>Ahorro Económico: €%{value:,.0f}<br>Nº de Medidas: %{customdata[0]}<extra></extra>')
         st.plotly_chart(fig6, use_container_width=True)
         
-        st.subheader("Investment vs. Financial Savings")
-        fin_summary = df_filtered.groupby(group_by_col).agg(
-            Total_Investment=('Investment', 'sum'),
-            Total_Money_Saved=('Money Saved', 'sum')
+        st.subheader("Inversión vs. Ahorro Económico")
+        resumen_fin = df_filtrado.groupby(columna_agrupar).agg(
+            Inversion_Total=('Inversión', 'sum'),
+            Ahorro_Total_Economico=('Ahorro económico', 'sum')
         ).reset_index()
         
-        if show_percentage and not fin_summary.empty:
-            # Calculate totals for percentage calculation
-            total_investment_all = fin_summary['Total_Investment'].sum()
-            total_savings_all = fin_summary['Total_Money_Saved'].sum()
+        if mostrar_porcentaje and not resumen_fin.empty:
+            # Calcular totales para la vista en porcentaje
+            inversion_total_todo = resumen_fin['Inversion_Total'].sum()
+            ahorro_total_todo = resumen_fin['Ahorro_Total_Economico'].sum()
             
-            # Avoid division by zero
-            if total_investment_all > 0:
-                fin_summary['Investment %'] = (fin_summary['Total_Investment'] / total_investment_all) * 100
+            # Evitar división por cero
+            if inversion_total_todo > 0:
+                resumen_fin['Inversión %'] = (resumen_fin['Inversion_Total'] / inversion_total_todo) * 100
             else:
-                fin_summary['Investment %'] = 0
+                resumen_fin['Inversión %'] = 0
                 
-            if total_savings_all > 0:
-                fin_summary['Savings %'] = (fin_summary['Total_Money_Saved'] / total_savings_all) * 100
+            if ahorro_total_todo > 0:
+                resumen_fin['Ahorro %'] = (resumen_fin['Ahorro_Total_Economico'] / ahorro_total_todo) * 100
             else:
-                fin_summary['Savings %'] = 0
-        
-            # Create the percentage-based plot
+                resumen_fin['Ahorro %'] = 0
+    
+            # Crear el gráfico basado en porcentajes
             fig7 = px.scatter(
-                fin_summary,
-                x='Investment %',
-                y='Savings %',
-                text=group_by_col,
-                size='Total_Investment',
-                color=group_by_col,
-                title=f'% Contribution to Investment vs. Savings',
-                labels={'Investment %': '% of Total Investment', 'Savings %': '% of Total Savings'}
+                resumen_fin,
+                x='Inversión %',
+                y='Ahorro %',
+                text=columna_agrupar,
+                size='Inversion_Total',
+                color=columna_agrupar,
+                title=f'% Contribución a Inversión vs. Ahorro',
+                labels={'Inversión %': '% Inversión Total', 'Ahorro %': '% Ahorro Total'}
             )
         else:
-            # Create the original absolute value plot
+            # Crear el gráfico con valores absolutos
             fig7 = px.scatter(
-                fin_summary,
-                x='Total_Investment',
-                y='Total_Money_Saved',
-                text=group_by_col,
-                size='Total_Investment',
-                color=group_by_col,
-                title=f'Investment vs. Money Saved per {group_by_col}'
+                resumen_fin,
+                x='Inversion_Total',
+                y='Ahorro_Total_Economico',
+                text=columna_agrupar,
+                size='Inversion_Total',
+                color=columna_agrupar,
+                title=f'Inversión vs. Ahorro Económico por {columna_agrupar}'
             )
         
         fig7.update_traces(textposition='top center')
-        fig7.update_layout(xaxis_title="Investment (€)", yaxis_title="Annual Money Saved (€)", template="plotly_white")
+        fig7.update_layout(xaxis_title="Inversión (€)", yaxis_title="Ahorro Anual (€)", template="plotly_white")
         st.plotly_chart(fig7, use_container_width=True)
     
-    # --- Advanced Analysis Section ---
+    # --- Sección de Análisis Avanzado ---
     st.markdown("---")
-    st.header("Advanced Analysis")
+    st.header("Análisis Avanzado")
     adv_col1, adv_col2 = st.columns(2, gap="large")
 
     with adv_col1:
-        st.subheader("Investment Efficacy")
-        plot_data = df_filtered[(df_filtered['Investment'] > 0) & (df_filtered['Money Saved'] > 0)]
+        st.subheader("Eficacia de la Inversión")
+        datos_grafico = df_filtrado[(df_filtrado['Inversión'] > 0) & (df_filtrado['Ahorro económico'] > 0)]
         
-        if not plot_data.empty:
-            if show_percentage:
-                # Calculate totals for percentage view
-                total_investment_all = plot_data['Investment'].sum()
-                total_savings_all = plot_data['Money Saved'].sum()
+        if not datos_grafico.empty:
+            if mostrar_porcentaje:
+                # Calcular totales para la vista en porcentaje
+                inversion_total_todo = datos_grafico['Inversión'].sum()
+                ahorro_total_todo = datos_grafico['Ahorro económico'].sum()
     
-                plot_data['Investment %'] = (plot_data['Investment'] / total_investment_all) * 100
-                plot_data['Savings %'] = (plot_data['Money Saved'] / total_savings_all) * 100
+                datos_grafico['Inversión %'] = (datos_grafico['Inversión'] / inversion_total_todo) * 100
+                datos_grafico['Ahorro %'] = (datos_grafico['Ahorro económico'] / ahorro_total_todo) * 100
                 
-                x_axis, y_axis = 'Investment %', 'Savings %'
-                x_label, y_label = '% of Total Investment', '% of Total Savings'
-                title_text = "Relative Contribution to Investment vs. Savings"
+                eje_x, eje_y = 'Inversión %', 'Ahorro %'
+                label_x, label_y = '% de Inversión Total', '% de Ahorro Total'
+                texto_titulo = "Contribución Relativa a Inversión vs. Ahorro"
             else:
-                x_axis, y_axis = 'Investment', 'Money Saved'
-                x_label, y_label = 'Investment (€)', 'Annual Money Saved (€)'
-                title_text = "Investment vs. Annual Savings"
+                eje_x, eje_y = 'Inversión', 'Ahorro económico'
+                label_x, label_y = 'Inversión (€)', 'Ahorro Anual (€)'
+                texto_titulo = "Inversión vs. Ahorro Anual"
     
-            fig_bubble = px.scatter(
-                plot_data,
-                x=x_axis,
-                y=y_axis,
-                size='Energy Saved',
-                color='Category',
-                hover_name='Measure',
+            fig_burbuja = px.scatter(
+                datos_grafico,
+                x=eje_x,
+                y=eje_y,
+                size='Ahorro energético',
+                color='Categoría',
+                hover_name='Medida',
                 size_max=60,
-                title=title_text,
+                title=texto_titulo,
                 template="plotly_white"
             )
             
-            fig_bubble.update_layout(
-                xaxis_title=x_label,
-                yaxis_title=y_label,
-                legend_title=analysis_type
+            fig_burbuja.update_layout(
+                xaxis_title=label_x,
+                yaxis_title=label_y,
+                legend_title=tipo_analisis
             )
-            st.plotly_chart(fig_bubble, use_container_width=True)
+            st.plotly_chart(fig_burbuja, use_container_width=True)
         else:
-            st.info("No data with both investment and savings to display in the bubble chart.")
+            st.info("No hay datos con inversión y ahorro para mostrar en el gráfico de burbujas.")
         
     with adv_col2:
-        st.subheader("Project Payback Distribution")
-        payback_data = df_filtered[df_filtered['Pay back period'] > 0]
+        st.subheader("Distribución del Retorno de Proyectos")
+        datos_retorno = df_filtrado[df_filtrado['Periodo de retorno'] > 0]
         
-        if not payback_data.empty:
-            if show_percentage:
-                # Use histnorm='percent' to automatically show percentages
+        if not datos_retorno.empty:
+            if mostrar_porcentaje:
+                # Usar histnorm='percent' para mostrar porcentajes automáticamente
                 histnorm_val = 'percent'
-                y_axis_title = '% of Total Measures'
-                title_text = "Percentage Distribution of Payback Periods"
+                titulo_eje_y = '% del Total de Medidas'
+                texto_titulo = "Distribución Porcentual de los Periodos de Retorno"
             else:
                 histnorm_val = None
-                y_axis_title = 'Number of Measures'
-                title_text = "Distribution of Payback Periods"
+                titulo_eje_y = 'Número de Medidas'
+                texto_titulo = "Distribución de los Periodos de Retorno"
     
             fig_hist = px.histogram(
-                payback_data,
-                x='Pay back period',
+                datos_retorno,
+                x='Periodo de retorno',
                 nbins=20,
-                histnorm=histnorm_val, # This is the key change
+                histnorm=histnorm_val,
                 template="plotly_white",
-                title=title_text
+                title=texto_titulo
             )
             
             fig_hist.update_layout(
-                xaxis_title="Payback Period (Years)",
-                yaxis_title=y_axis_title
+                xaxis_title="Periodo de Retorno (Años)",
+                yaxis_title=titulo_eje_y
             )
             st.plotly_chart(fig_hist, use_container_width=True)
         else:
-            st.info("No data with a payback period to display in the histogram.")
+            st.info("No hay datos con periodo de retorno para mostrar en el histograma.")
 
     st.markdown("---")
-    st.subheader("Investment & Savings Flow (Sankey Diagram)")
-    sankey_data = df_filtered.groupby(['Category', group_by_col]).agg(Total_Investment=('Investment', 'sum'), Total_Savings=('Money Saved', 'sum')).reset_index()
-    if not sankey_data.empty and sankey_data['Total_Investment'].sum() > 0:
-        all_nodes = list(pd.concat([sankey_data['Category'], sankey_data[group_by_col]]).unique())
+    st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
+    datos_sankey = df_filtrado.groupby(['Categoría', columna_agrupar]).agg(Inversion_Total=('Inversión', 'sum'), Ahorro_Total=('Ahorro económico', 'sum')).reset_index()
+    if not datos_sankey.empty and datos_sankey['Inversion_Total'].sum() > 0:
+        todos_nodos = list(pd.concat([datos_sankey['Categoría'], datos_sankey[columna_agrupar]]).unique())
         fig_sankey = go.Figure(data=[go.Sankey(
-            node=dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=all_nodes),
+            node=dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=todos_nodos),
             link=dict(
-              source=[all_nodes.index(cat) for cat in sankey_data['Category']],
-              target=[all_nodes.index(center) for center in sankey_data[group_by_col]],
-              value=sankey_data['Total_Investment'],
-              hovertemplate='Investment from %{source.label} to %{target.label}: €%{value:,.0f}<br>' + 'Resulting Savings: €' + sankey_data['Total_Savings'].map('{:,.0f}'.format) + '<extra></extra>'
+                source=[todos_nodos.index(cat) for cat in datos_sankey['Categoría']],
+                target=[todos_nodos.index(center) for center in datos_sankey[columna_agrupar]],
+                value=datos_sankey['Inversion_Total'],
+                hovertemplate='Inversión de %{source.label} a %{target.label}: €%{value:,.0f}<br>' + 'Ahorro resultante: €' + datos_sankey['Ahorro_Total'].map('{:,.0f}'.format) + '<extra></extra>'
             ))])
-        fig_sankey.update_layout(title_text=f"Flow from Category to {group_by_col} by Investment", font_size=12)
+        fig_sankey.update_layout(title_text=f"Flujo de Categoría a {columna_agrupar} por Inversión", font_size=12)
         st.plotly_chart(fig_sankey, use_container_width=True)
+    
+    # --- Sección de Tablas de Datos ---
+    st.markdown("---")
+    st.header("Tablas de Datos")
 
-
-        
-        # --- Data Tables Section ---
-        st.markdown("---")
-        st.header("Data Tables")
-
-        # --- Dynamic Explanation Table (Table 1) ---
-        st.subheader("1. Category Explanations")
-        if analysis_type == 'Tipo de Medida':
-            explanation_df = pd.DataFrame([
-                (info['Category'], desc, info['Code']) for desc, info in measure_mapping.items()
-            ], columns=['Category', 'Measure Description', 'Code Prefix']).sort_values(by='Code Prefix')
-        else:
-            # For other types, create a simple explanation from the unique categories
-            explanation_df = df_filtered[['Category']].drop_duplicates().sort_values('Category')
-            explanation_df['Explanation'] = explanation_df['Category'] # In a real scenario, you'd map this to a definition
-        st.dataframe(explanation_df, use_container_width=True, hide_index=True)
-
-        # --- Detailed Data Table (Table 2) ---
-        st.subheader(f"2. Detailed Data by {group_by_col}")
-        
-        columns_to_display = [group_by_col, 'Measure', 'Category', 'Investment', 'Energy Saved', 'Money Saved', 'Pay back period']
-        if analysis_type == 'Tipo de Medida' and 'Measure Code' in df_filtered.columns:
-            columns_to_display.insert(1, 'Measure Code')
-
-        financial_table_df = df_filtered[columns_to_display].sort_values(by=[group_by_col])
-        st.dataframe(
-            financial_table_df,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Investment": st.column_config.NumberColumn("Investment (€)", format="€ %d"),
-                "Energy Saved": st.column_config.NumberColumn("Energy Saved (kWh)", format="%d kWh"),
-                "Money Saved": st.column_config.NumberColumn("Money Saved (€/year)", format="€ %d"),
-                "Pay back period": st.column_config.NumberColumn("Payback (years)", format="%.1f years"),
-            }
-        )
+    # --- Tabla Explicativa Dinámica (Tabla 1) ---
+    st.subheader("1. Explicación de Categorías")
+    if tipo_analisis == 'Tipo de Medida':
+        df_explicacion = pd.DataFrame([
+            (info['Category'], desc, info['Code']) for desc, info in mapeo_medidas.items()
+        ], columns=['Categoría', 'Descripción Medida', 'Prefijo Código']).sort_values(by='Prefijo Código')
     else:
-        st.info("No data available for the current filter selection.")
+        # Para otros tipos, crear una explicación simple de las categorías únicas
+        df_explicacion = df_filtrado[['Categoría']].drop_duplicates().sort_values('Categoría')
+        # En un caso real, se podría mapear esto a una definición más detallada
+        df_explicacion['Explicación'] = df_explicacion['Categoría'] 
+    st.dataframe(df_explicacion, use_container_width=True, hide_index=True)
+
+    # --- Tabla de Datos Detallada (Tabla 2) ---
+    st.subheader(f"2. Datos Detallados por {columna_agrupar}")
+    
+    columnas_a_mostrar = [columna_agrupar, 'Medida', 'Categoría', 'Inversión', 'Ahorro energético', 'Ahorro económico', 'Periodo de retorno']
+    if tipo_analisis == 'Tipo de Medida' and 'Código Medida' in df_filtrado.columns:
+        columnas_a_mostrar.insert(1, 'Código Medida')
+
+    df_tabla_financiera = df_filtrado[columnas_a_mostrar].sort_values(by=[columna_agrupar])
+    st.dataframe(
+        df_tabla_financiera,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Inversión": st.column_config.NumberColumn("Inversión (€)", format="€ %d"),
+            "Ahorro energético": st.column_config.NumberColumn("Ahorro Energético (kWh)", format="%d kWh"),
+            "Ahorro económico": st.column_config.NumberColumn("Ahorro Anual (€)", format="€ %d"),
+            "Periodo de retorno": st.column_config.NumberColumn("Retorno (años)", format="%.1f años"),
+        }
+    )
 else:
-    st.warning("Data could not be loaded. Please check the file path and try again.")
-
-
-
-
-
-
+    # Este mensaje se muestra si los filtros no devuelven datos
+    st.info("No hay datos disponibles para la selección de filtros actual.")
+else:
+    # Este mensaje se muestra si el archivo CSV no se puede cargar al inicio
+    st.warning("No se pudieron cargar los datos. Por favor, revise la ruta del archivo e inténtelo de nuevo.")
