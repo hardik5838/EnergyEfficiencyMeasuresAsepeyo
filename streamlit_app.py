@@ -21,6 +21,7 @@ def load_data(file_path):
         # Limpiar espacios en los nombres de las columnas
         df.columns = df.columns.str.strip()
         # Renombrar columnas al español para consistencia en el código
+        # ESTA ES LA SECCIÓN CLAVE DONDE SE RENOMBRAN LAS COLUMNAS
         df.rename(columns={
             'Center': 'Centro',
             'Measure': 'Medida',
@@ -79,6 +80,7 @@ if not df_original.empty:
                 if nombre_estandar.lower() in texto_medida.lower():
                     return pd.Series([info['Category'], info['Code']])
             return pd.Series(['Sin categorizar', 'Z.Z'])
+        # CORRECCIÓN: Se usa 'Medida', el nombre de columna ya traducido
         df_in[['Categoría', 'Base Código Medida']] = df_in['Medida'].apply(get_info)
         return df_in
 
@@ -89,6 +91,7 @@ if not df_original.empty:
             if any(word in medida for word in ["sustitución", "cambio", "mejora", "aislamiento"]): return 'Reforma y Actualización de Equipos'
             if any(word in medida for word in ["prácticas", "cultura", "regulación", "optimización", "reducción"]): return 'Operacional y Comportamental'
             return 'Intervenciones Específicas'
+        # CORRECCIÓN: Se usa 'Medida'
         df_in['Categoría'] = df_in['Medida'].apply(get_type)
         return df_in
 
@@ -98,6 +101,7 @@ if not df_original.empty:
             if retorno < 2: return 'Resultados Rápidos (< 2 años)'
             if retorno <= 5: return 'Proyectos Estándar (2-5 años)'
             return 'Inversiones Estratégicas (> 5 años)'
+        # CORRECCIÓN: Se usa 'Periodo de retorno'
         df_in['Categoría'] = df_in['Periodo de retorno'].apply(get_type)
         return df_in
 
@@ -108,6 +112,7 @@ if not df_original.empty:
             if any(word in medida for word in ["led", "iluminación", "luminarias", "eléctrico", "potencia", "reactiva", "condensadores", "regletas"]): return 'Iluminación y Electricidad'
             if any(word in medida for word in ["gestión", "fotovoltaica", "solar", "prácticas", "remanente", "cultura"]): return 'Gestión y Estrategia Energética'
             return 'Otras Funciones'
+        # CORRECCIÓN: Se usa 'Medida'
         df_in['Categoría'] = df_in['Medida'].apply(get_type)
         return df_in
         
@@ -117,6 +122,7 @@ if not df_original.empty:
             if any(word in medida for word in ["gasóleo", "diesel", "caldera", "térmica"]): return 'Ahorros Térmicos (Gas/Combustible)'
             if any(word in medida for word in ["led", "iluminación", "fotovoltaica", "eléctrico", "potencia", "reactiva", "variadores", "bombas", "regletas"]): return 'Ahorros Eléctricos'
             return 'Mixto / Operacional'
+        # CORRECCIÓN: Se usa 'Medida'
         df_in['Categoría'] = df_in['Medida'].apply(get_type)
         return df_in
 
@@ -180,10 +186,8 @@ if not df_original.empty:
     st.image("Logo_ASEPEYO.png", width=250)
     st.title("Análisis de Eficiencia Energética")
     
-    # --- RENDERIZADO DE KPIs, GRÁFICOS Y TABLAS (CORREGIDO) ---
-    # Este bloque ahora está correctamente anidado dentro de `if not df_original.empty:`
+    # --- RENDERIZADO DE KPIs, GRÁFICOS Y TABLAS ---
     if not df_filtrado.empty:
-        # Generar el código de medida completo SÓLO para el tipo de análisis relevante
         if tipo_analisis == 'Tipo de Medida':
             df_filtrado['Frecuencia'] = df_filtrado.groupby(['Comunidad Autónoma', 'Base Código Medida']).cumcount() + 1
             df_filtrado['Código Medida'] = df_filtrado.apply(
@@ -191,7 +195,6 @@ if not df_original.empty:
         
         columna_agrupar = 'Centro' if vista_detallada else 'Comunidad Autónoma'
 
-        # Lógica de Encabezados
         if vista_detallada and not centros_seleccionados:
             st.warning("Por favor, seleccione al menos un centro para la comparación detallada.")
         elif vista_detallada:
@@ -199,7 +202,6 @@ if not df_original.empty:
         else:
             st.header(f"Vista resumida para {len(comunidades_seleccionadas)} comunidades")
 
-        # KPIs
         inversion_total = df_filtrado['Inversión'].sum()
         ahorro_economico_total = df_filtrado['Ahorro económico'].sum()
         ahorro_energetico_total = df_filtrado['Ahorro energético'].sum()
@@ -268,14 +270,8 @@ if not df_original.empty:
             if mostrar_porcentaje and not resumen_fin.empty:
                 inversion_total_todo = resumen_fin['Inversion_Total'].sum()
                 ahorro_total_todo = resumen_fin['Ahorro_Total_Economico'].sum()
-                if inversion_total_todo > 0:
-                    resumen_fin['Inversión %'] = (resumen_fin['Inversion_Total'] / inversion_total_todo) * 100
-                else:
-                    resumen_fin['Inversión %'] = 0
-                if ahorro_total_todo > 0:
-                    resumen_fin['Ahorro %'] = (resumen_fin['Ahorro_Total_Economico'] / ahorro_total_todo) * 100
-                else:
-                    resumen_fin['Ahorro %'] = 0
+                resumen_fin['Inversión %'] = (resumen_fin['Inversion_Total'] / inversion_total_todo) * 100 if inversion_total_todo > 0 else 0
+                resumen_fin['Ahorro %'] = (resumen_fin['Ahorro_Total_Economico'] / ahorro_total_todo) * 100 if ahorro_total_todo > 0 else 0
                 fig7 = px.scatter(
                     resumen_fin, x='Inversión %', y='Ahorro %', text=columna_agrupar, size='Inversion_Total',
                     color=columna_agrupar, title='% Contribución a Inversión vs. Ahorro',
@@ -301,8 +297,8 @@ if not df_original.empty:
                 if mostrar_porcentaje:
                     inversion_total_todo = datos_grafico['Inversión'].sum()
                     ahorro_total_todo = datos_grafico['Ahorro económico'].sum()
-                    datos_grafico['Inversión %'] = (datos_grafico['Inversión'] / inversion_total_todo) * 100
-                    datos_grafico['Ahorro %'] = (datos_grafico['Ahorro económico'] / ahorro_total_todo) * 100
+                    datos_grafico['Inversión %'] = (datos_grafico['Inversión'] / inversion_total_todo) * 100 if inversion_total_todo > 0 else 0
+                    datos_grafico['Ahorro %'] = (datos_grafico['Ahorro económico'] / ahorro_total_todo) * 100 if ahorro_total_todo > 0 else 0
                     eje_x, eje_y = 'Inversión %', 'Ahorro %'
                     label_x, label_y = '% de Inversión Total', '% de Ahorro Total'
                     texto_titulo = "Contribución Relativa a Inversión vs. Ahorro"
@@ -384,9 +380,7 @@ if not df_original.empty:
             }
         )
     else:
-        # Este mensaje se muestra si los filtros no devuelven datos
         st.info("No hay datos disponibles para la selección de filtros actual.")
 
 else:
-    # Este mensaje se muestra si el archivo CSV no se puede cargar al inicio
     st.warning("No se pudieron cargar los datos. Por favor, revise la ruta del archivo e inténtelo de nuevo.")
