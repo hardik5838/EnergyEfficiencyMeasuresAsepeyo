@@ -349,7 +349,7 @@ if not df_original.empty:
                 st.plotly_chart(fig_hist, use_container_width=True)
             else:
                 st.info("No data with a payback period to display in the histogram.")
-            st.markdown("---")
+        st.markdown("---")
         
         
         st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
