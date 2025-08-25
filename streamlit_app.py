@@ -331,6 +331,7 @@ if not df_original.empty:
                     texto_titulo = "Distribución de los Periodos de Retorno"
                 fig_hist = px.histogram(
                     datos_retorno, x='Periodo de retorno', nbins=20, histnorm=histnorm_val,
+                    hover_data=['Centro', 'Medida'],
                     template="plotly_white", title=texto_titulo
                 )
                 fig_hist.update_layout(xaxis_title="Periodo de Retorno (Años)", yaxis_title=titulo_eje_y)
