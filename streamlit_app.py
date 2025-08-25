@@ -308,7 +308,9 @@ if not df_original.empty:
                     texto_titulo = "Inversión vs. Ahorro Anual"
                 fig_burbuja = px.scatter(
                     datos_grafico, x=eje_x, y=eje_y, size='Ahorro energético', color='Categoría',
-                    hover_name='Medida', size_max=60, title=texto_titulo, template="plotly_white"
+                    hover_name='Medida'
+                    hover_data=['Centro'],
+                    size_max=60, title=texto_titulo, template="plotly_white"
                 )
                 fig_burbuja.update_layout(xaxis_title=label_x, yaxis_title=label_y, legend_title=tipo_analisis)
                 st.plotly_chart(fig_burbuja, use_container_width=True)
