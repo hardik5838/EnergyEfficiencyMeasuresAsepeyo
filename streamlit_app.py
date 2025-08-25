@@ -335,9 +335,11 @@ if not df_original.empty:
                     x='Periodo de retorno',
                     nbins=20,
                     histnorm=histnorm_val,
+                    hover_data=['Centro', 'Medida'],
                     template="plotly_white",
                     title=title_text
                 )
+
                 
                 fig_hist.update_layout(
                     xaxis_title="Periodo de Retorno (Años)",
