@@ -318,35 +318,34 @@ if not df_original.empty:
                 st.info("No hay datos con inversión y ahorro para mostrar en el gráfico de burbujas.")
 
         with adv_col2:
-            st.subheader("Project Payback Distribution")
-            payback_data = df_filtered[df_filtered['Pay back period'] > 0]
+            st.subheader("Distribución del Periodo de Retorno")
+            payback_data = df_filtrado[df_filtrado['Periodo de retorno'] > 0]
             if not payback_data.empty:
-                if show_percentage:
-                    # Use histnorm='percent' to automatically show percentages
+                if mostrar_porcentaje:
                     histnorm_val = 'percent'
-                    y_axis_title = '% of Total Measures'
-                    title_text = "Percentage Distribution of Payback Periods"
+                    y_axis_title = '% del Total de Medidas'
+                    title_text = "Distribución Porcentual de los Periodos de Retorno"
                 else:
                     histnorm_val = None
-                    y_axis_title = 'Number of Measures'
-                    title_text = "Distribution of Payback Periods"
+                    y_axis_title = 'Número de Medidas'
+                    title_text = "Distribución de los Periodos de Retorno"
         
                 fig_hist = px.histogram(
                     payback_data,
-                    x='Pay back period',
+                    x='Periodo de retorno',
                     nbins=20,
-                    histnorm=histnorm_val, # This is the key change
+                    histnorm=histnorm_val,
                     template="plotly_white",
                     title=title_text
                 )
                 
                 fig_hist.update_layout(
-                    xaxis_title="Payback Period (Years)",
+                    xaxis_title="Periodo de Retorno (Años)",
                     yaxis_title=y_axis_title
                 )
                 st.plotly_chart(fig_hist, use_container_width=True)
             else:
-                st.info("No data with a payback period to display in the histogram.")
+                st.info("No hay datos con periodo de retorno para mostrar en el histograma.")
         
         
             st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
