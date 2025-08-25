@@ -328,7 +328,7 @@ if not df_original.empty:
                     histnorm_val = 'percent'
                     y_axis_title = '% of Total Measures'
                     title_text = "Percentage Distribution of Payback Periods"
-               else:
+                else:
                     histnorm_val = None
                     y_axis_title = 'Number of Measures'
                     title_text = "Distribution of Payback Periods"
