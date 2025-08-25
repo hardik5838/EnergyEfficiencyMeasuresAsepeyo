@@ -347,21 +347,21 @@ if not df_original.empty:
             else:
                 st.info("No hay datos con periodo de retorno para mostrar en el histograma.")
         
-        
-            st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
-            datos_sankey = df_filtrado.groupby(['Categoría', columna_agrupar]).agg(Inversion_Total=('Inversión', 'sum'), Ahorro_Total=('Ahorro económico', 'sum')).reset_index()
-            if not datos_sankey.empty and datos_sankey['Inversion_Total'].sum() > 0:
-                todos_nodos = list(pd.concat([datos_sankey['Categoría'], datos_sankey[columna_agrupar]]).unique())
-                fig_sankey = go.Figure(data=[go.Sankey(
-                    node=dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=todos_nodos),
-                    link=dict(
-                        source=[todos_nodos.index(cat) for cat in datos_sankey['Categoría']],
-                        target=[todos_nodos.index(center) for center in datos_sankey[columna_agrupar]],
-                        value=datos_sankey['Inversion_Total'],
-                        hovertemplate='Inversión de %{source.label} a %{target.label}: €%{value:,.0f}<br>' + 'Ahorro resultante: €' + datos_sankey['Ahorro_Total'].map('{:,.0f}'.format) + '<extra></extra>'
-                    ))])
-                fig_sankey.update_layout(title_text=f"Flujo de Categoría a {columna_agrupar} por Inversión", font_size=12)
-                st.plotly_chart(fig_sankey, use_container_width=True)
+        # --- Sankey Diagram (Full Width) ---
+        st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
+        datos_sankey = df_filtrado.groupby(['Categoría', columna_agrupar]).agg(Inversion_Total=('Inversión', 'sum'), Ahorro_Total=('Ahorro económico', 'sum')).reset_index()
+        if not datos_sankey.empty and datos_sankey['Inversion_Total'].sum() > 0:
+            todos_nodos = list(pd.concat([datos_sankey['Categoría'], datos_sankey[columna_agrupar]]).unique())
+            fig_sankey = go.Figure(data=[go.Sankey(
+                node=dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=todos_nodos),
+                link=dict(
+                    source=[todos_nodos.index(cat) for cat in datos_sankey['Categoría']],
+                    target=[todos_nodos.index(center) for center in datos_sankey[columna_agrupar]],
+                    value=datos_sankey['Inversion_Total'],
+                    hovertemplate='Inversión de %{source.label} a %{target.label}: €%{value:,.0f}<br>' + 'Ahorro resultante: €' + datos_sankey['Ahorro_Total'].map('{:,.0f}'.format) + '<extra></extra>'
+                ))])
+            fig_sankey.update_layout(title_text=f"Flujo de Categoría a {columna_agrupar} por Inversión", font_size=12)
+            st.plotly_chart(fig_sankey, use_container_width=True)
         
         st.markdown("---")
         st.header("Tablas de Datos")
