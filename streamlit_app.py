@@ -317,14 +317,13 @@ if not df_original.empty:
             else:
                 st.info("No hay datos con inversión y ahorro para mostrar en el gráfico de burbujas.")
             
-
         with adv_col2:
             st.subheader("Distribución del Retorno de Proyectos")
-            datos_retorno = df_filtrado[df_filtrado['Periodo de retorno'] > 0].copy() # Añadimos .copy() por seguridad
+            datos_retorno = df_filtrado[df_filtrado['Periodo de retorno'] > 0].copy()
             if not datos_retorno.empty:
                 
-                # --- LÍNEA NUEVA ---
-                # Creamos una columna nueva con el texto que queremos mostrar
+                # Mantenemos esta línea, es correcta.
+                # Creamos la columna con el texto que queremos mostrar
                 datos_retorno['texto_info'] = '<b>Centro:</b> ' + datos_retorno['Centro'] + '<br><b>Medida:</b> ' + datos_retorno['Medida']
         
                 if mostrar_porcentaje:
@@ -336,22 +335,21 @@ if not df_original.empty:
                     titulo_eje_y = 'Número de Medidas'
                     texto_titulo = "Distribución de los Periodos de Retorno"
                 
-                # --- LÍNEA MODIFICADA ---
-                # Usamos la nueva columna 'texto_info' en el gráfico
+                # --- LÍNEA MODIFICADA Y SIMPLIFICADA ---
+                # Usamos 'hover_name' que es compatible con versiones antiguas
                 fig_hist = px.histogram(
                     datos_retorno, x='Periodo de retorno', nbins=20, histnorm=histnorm_val,
-                    custom_data=['texto_info'], # Pasamos la nueva columna como dato custom
+                    hover_name='texto_info', # <-- ESTE ES EL CAMBIO IMPORTANTE
                     template="plotly_white", title=texto_titulo
                 )
-        
-                # --- LÍNEA NUEVA ---
-                # Actualizamos la plantilla para que muestre nuestro texto
-                fig_hist.update_traces(hovertemplate='%{customdata[0]}<extra></extra>')
+                
+                # Hemos eliminado la línea update_traces que ya no es necesaria
         
                 fig_hist.update_layout(xaxis_title="Periodo de Retorno (Años)", yaxis_title=titulo_eje_y)
                 st.plotly_chart(fig_hist, use_container_width=True)
             else:
                 st.info("No hay datos con periodo de retorno para mostrar en el histograma.")
+
 
         st.markdown("---")
         st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
