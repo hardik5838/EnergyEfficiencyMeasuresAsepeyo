@@ -290,7 +290,7 @@ if not df_original.empty:
         st.header("Análisis Avanzado")
         adv_col1, adv_col2 = st.columns(2, gap="large")
 
-        with adv_col1:
+    with adv_col1:
             st.subheader("Eficacia de la Inversión")
             datos_grafico = df_filtrado[(df_filtrado['Inversión'] > 0) & (df_filtrado['Ahorro económico'] > 0)]
             if not datos_grafico.empty:
@@ -317,69 +317,30 @@ if not df_original.empty:
             else:
                 st.info("No hay datos con inversión y ahorro para mostrar en el gráfico de burbujas.")
 
-
-        with adv_col2:
-            st.subheader("Distribución del Retorno de Proyectos")
-            datos_retorno = df_filtrado[df_filtrado['Periodo de retorno'] > 0].copy()
-            if not datos_retorno.empty:
-                # --- PASO 1: Crear el texto para mostrar ---
-                datos_retorno['texto_info'] = '<b>Centro:</b> ' + datos_retorno['Centro'] + '<br><b>Medida:</b> ' + datos_retorno['Medida']
+    with adv_col2:
+            st.subheader("Distribución del Retorno de Proyectos")
+            datos_retorno = df_filtrado[df_filtrado['Periodo de retorno'] > 0]
+            if not datos_retorno.empty:
+                if mostrar_porcentaje:
+                    histnorm_val = 'percent'
+                    titulo_eje_y = '% del Total de Medidas'
+                    texto_titulo = "Distribución Porcentual de los Periodos de Retorno"
         
-                # --- PASO 2: Agrupar los datos en rangos (bins) manualmente ---
-                max_retorno = int(datos_retorno['Periodo de retorno'].max()) + 1
-                bins = list(range(0, max_retorno + 1)) # Bins de 1 año: [0, 1, 2, ...]
-                labels = [f'{i} a {i+1} años' for i in range(len(bins)-1)]
-                
-                # Si no hay bins, evitamos un error
-                if len(bins) > 1:
-                    datos_retorno['rango_retorno'] = pd.cut(
-                        datos_retorno['Periodo de retorno'], 
-                        bins=bins, 
-                        labels=labels, 
-                        right=False,
-                        include_lowest=True
-                    )
+                else:
+                    histnorm_val = None
+                    titulo_eje_y = 'Número de Medidas'
+                    texto_titulo = "Distribución de los Periodos de Retorno"
+                fig_hist = px.histogram(
+                    datos_retorno, x='Periodo de retorno', nbins=20, histnorm=histnorm_val,
+                    hover_data=['Centro', 'Medida'],
+                     template="plotly_white", title=texto_titulo
+                     )
         
-                    # --- PASO 3: Agregar los datos por cada rango ---
-                    def juntar_textos(series):
-                        return '<br><hr>'.join(series) # Unimos los textos con una línea horizontal
+                     fig_hist.update_layout(xaxis_title="Periodo de Retorno (Años)", yaxis_title=titulo_eje_y)
+                     st.plotly_chart(fig_hist, use_container_width=True)
+            else:
+                st.info("No hay datos con periodo de retorno para mostrar en el histograma.")
         
-                    datos_para_grafico = datos_retorno.groupby('rango_retorno').agg(
-                        conteo=('Medida', 'count'),
-                        info_hover=('texto_info', juntar_textos)
-                    ).reset_index()
-        
-                    # --- PASO 4: Crear el gráfico de barras con px.bar ---
-                    if mostrar_porcentaje:
-                        total_medidas = datos_para_grafico['conteo'].sum()
-                        datos_para_grafico['porcentaje'] = (datos_para_grafico['conteo'] / total_medidas) * 100
-                        y_val, y_label = 'porcentaje', '% del Total de Medidas'
-                        hovertemplate = '<b>Rango:</b> %{x}<br><b>Porcentaje:</b> %{y:.2f}%<br><b>Medidas en este rango:</b> %{customdata[0]}<br><hr>%{customdata[1]}<extra></extra>'
-                    else:
-                        y_val, y_label = 'conteo', 'Número de Medidas'
-                        hovertemplate = '<b>Rango:</b> %{x}<br><b>Número de Medidas:</b> %{y}<br><hr>%{customdata[0]}<extra></extra>'
-        
-                    fig_hist = px.bar(
-                        datos_para_grafico,
-                        x='rango_retorno',
-                        y=y_val,
-                        custom_data=['info_hover', 'conteo'] # Pasamos el texto unido y el conteo
-                    )
-                    
-                    fig_hist.update_traces(hovertemplate=hovertemplate)
-                    
-                    fig_hist.update_layout(
-                        xaxis_title="Periodo de Retorno (Años)",
-                        yaxis_title=y_label,
-                        title="Distribución de los Periodos de Retorno",
-                        template="plotly_white"
-                    )
-                    st.plotly_chart(fig_hist, use_container_width=True)
-                else:
-                    st.info("No hay suficientes datos de retorno para mostrar en el histograma.")
-            else:
-                st.info("No hay datos con periodo de retorno para mostrar en el histograma.")
-
         st.markdown("---")
         st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
         datos_sankey = df_filtrado.groupby(['Categoría', columna_agrupar]).agg(Inversion_Total=('Inversión', 'sum'), Ahorro_Total=('Ahorro económico', 'sum')).reset_index()
