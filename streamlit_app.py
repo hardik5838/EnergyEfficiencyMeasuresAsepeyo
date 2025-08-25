@@ -318,7 +318,7 @@ if not df_original.empty:
                 st.info("No hay datos con inversión y ahorro para mostrar en el gráfico de burbujas.")
 
     with adv_col2:
-            st.subheader("Distribución del Retorno de Proyectos")
+            st.subheader("Distribución del Retorno de Proyectos")
             datos_retorno = df_filtrado[df_filtrado['Periodo de retorno'] > 0]
             if not datos_retorno.empty:
                 if mostrar_porcentaje:
