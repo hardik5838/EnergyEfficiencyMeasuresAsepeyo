@@ -317,29 +317,39 @@ if not df_original.empty:
             else:
                 st.info("No hay datos con inversión y ahorro para mostrar en el gráfico de burbujas.")
 
+       
+        
     with adv_col2:
-            st.subheader("Distribución del Retorno de Proyectos")
-            datos_retorno = df_filtrado[df_filtrado['Periodo de retorno'] > 0]
-            if not datos_retorno.empty:
-                if mostrar_porcentaje:
-                    histnorm_val = 'percent'
-                    titulo_eje_y = '% del Total de Medidas'
-                    texto_titulo = "Distribución Porcentual de los Periodos de Retorno"
+            st.subheader("Project Payback Distribution")
+            payback_data = df_filtered[df_filtered['Pay back period'] > 0]
+            if not payback_data.empty:
+                if show_percentage:
+                    # Use histnorm='percent' to automatically show percentages
+                    histnorm_val = 'percent'
+                    y_axis_title = '% of Total Measures'
+                    title_text = "Percentage Distribution of Payback Periods"
+               else:
+                    histnorm_val = None
+                    y_axis_title = 'Number of Measures'
+                    title_text = "Distribution of Payback Periods"
         
-                else:
-                    histnorm_val = None
-                    titulo_eje_y = 'Número de Medidas'
-                    texto_titulo = "Distribución de los Periodos de Retorno"
-                fig_hist = px.histogram(
-                    datos_retorno, x='Periodo de retorno', nbins=20, histnorm=histnorm_val,
-                    hover_data=['Centro', 'Medida'],
-                     template="plotly_white", title=texto_titulo
-                     )
-        
-                     fig_hist.update_layout(xaxis_title="Periodo de Retorno (Años)", yaxis_title=titulo_eje_y)
-                     st.plotly_chart(fig_hist, use_container_width=True)
-            else:
-                st.info("No hay datos con periodo de retorno para mostrar en el histograma.")
+                fig_hist = px.histogram(
+                    payback_data,
+                    x='Pay back period',
+                    nbins=20,
+                    histnorm=histnorm_val, # This is the key change
+                    template="plotly_white",
+                    title=title_text
+                )
+                
+                fig_hist.update_layout(
+                    xaxis_title="Payback Period (Years)",
+                    yaxis_title=y_axis_title
+                )
+                st.plotly_chart(fig_hist, use_container_width=True)
+            else:
+                st.info("No data with a payback period to display in the histogram.")
+
         
         st.markdown("---")
         st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
