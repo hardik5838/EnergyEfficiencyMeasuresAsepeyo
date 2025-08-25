@@ -317,10 +317,16 @@ if not df_original.empty:
             else:
                 st.info("No hay datos con inversión y ahorro para mostrar en el gráfico de burbujas.")
             
+
         with adv_col2:
             st.subheader("Distribución del Retorno de Proyectos")
-            datos_retorno = df_filtrado[df_filtrado['Periodo de retorno'] > 0]
+            datos_retorno = df_filtrado[df_filtrado['Periodo de retorno'] > 0].copy() # Añadimos .copy() por seguridad
             if not datos_retorno.empty:
+                
+                # --- LÍNEA NUEVA ---
+                # Creamos una columna nueva con el texto que queremos mostrar
+                datos_retorno['texto_info'] = '<b>Centro:</b> ' + datos_retorno['Centro'] + '<br><b>Medida:</b> ' + datos_retorno['Medida']
+        
                 if mostrar_porcentaje:
                     histnorm_val = 'percent'
                     titulo_eje_y = '% del Total de Medidas'
@@ -329,11 +335,19 @@ if not df_original.empty:
                     histnorm_val = None
                     titulo_eje_y = 'Número de Medidas'
                     texto_titulo = "Distribución de los Periodos de Retorno"
+                
+                # --- LÍNEA MODIFICADA ---
+                # Usamos la nueva columna 'texto_info' en el gráfico
                 fig_hist = px.histogram(
                     datos_retorno, x='Periodo de retorno', nbins=20, histnorm=histnorm_val,
-                    hover_data=['Centro', 'Medida'],
+                    custom_data=['texto_info'], # Pasamos la nueva columna como dato custom
                     template="plotly_white", title=texto_titulo
                 )
+        
+                # --- LÍNEA NUEVA ---
+                # Actualizamos la plantilla para que muestre nuestro texto
+                fig_hist.update_traces(hovertemplate='%{customdata[0]}<extra></extra>')
+        
                 fig_hist.update_layout(xaxis_title="Periodo de Retorno (Años)", yaxis_title=titulo_eje_y)
                 st.plotly_chart(fig_hist, use_container_width=True)
             else:
