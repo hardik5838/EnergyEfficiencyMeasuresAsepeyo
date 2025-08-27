@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import os 
 
 # Configuración de la página
 st.set_page_config(
@@ -41,15 +42,84 @@ def load_data(file_path):
         return pd.DataFrame()
 
 # --- Lógica Principal de la Aplicación ---
-df_original = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
+# --- Barra Lateral y Lógica de Carga de Datos ---
+with st.sidebar:
+    st.title('⚡ Filtros Asepeyo')
 
-if not df_original.empty:
+    # --- Selector dinámico de archivos ---
+    DATA_DIR = "Data/"
+    try:
+        # 1. Busca todos los archivos que terminen en .csv en la carpeta Data/
+        files = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv')]
 
-    # --- Inicialización del Estado de la Sesión ---
-    if 'centros_seleccionados' not in st.session_state:
-        st.session_state.centros_seleccionados = []
-    if 'comunidades_seleccionadas' not in st.session_state:
-        st.session_state.comunidades_seleccionadas = sorted(df_original['Comunidad Autónoma'].unique().tolist())
+        # 2. Si no se encuentran archivos, muestra un mensaje y detiene la app
+        if not files:
+            st.warning("No se encontraron archivos CSV en la carpeta 'Data/'. Por favor, suba un archivo para comenzar.")
+            st.stop()
+        
+        # 3. Crea el menú desplegable para que el usuario elija
+        selected_file = st.selectbox(
+            "Seleccionar Auditoría",
+            files,
+            # Opcional: Intenta establecer un archivo predeterminado
+            index=files.index("2025 Energy Audit summary - Sheet1.csv") if "2025 Energy Audit summary - Sheet1.csv" in files else 0
+        )
+
+        # 4. Construye la ruta completa al archivo seleccionado y carga los datos
+        file_path = os.path.join(DATA_DIR, selected_file)
+        df_original = load_data(file_path)
+
+    except FileNotFoundError:
+        st.error(f"El directorio '{DATA_DIR}' no fue encontrado. Asegúrese de que exista.")
+        st.stop()
+
+    # --- Filtros de Usuario (dependen de los datos cargados) ---
+    if not df_original.empty:
+        tipo_analisis = st.radio(
+            "Seleccionar Tipo de Análisis",
+            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio', 'Tipo de Ahorro Energético')
+        )
+        mostrar_porcentaje = st.toggle('Mostrar valores en porcentaje')
+        st.markdown("---")
+        vista_detallada = st.toggle('Mostrar vista detallada por centro')
+
+        # Sincronizar el estado de la sesión si el archivo cambia
+        if 'last_file' not in st.session_state or st.session_state.last_file != selected_file:
+            st.session_state.last_file = selected_file
+            st.session_state.comunidades_seleccionadas = sorted(df_original['Comunidad Autónoma'].unique().tolist())
+            st.session_state.centros_seleccionados = []
+        
+        lista_comunidades = sorted(df_original['Comunidad Autónoma'].unique().tolist())
+        if st.button("Todas las Comunidades", use_container_width=True):
+            st.session_state.comunidades_seleccionadas = lista_comunidades
+        
+        comunidades_seleccionadas = st.multiselect('Seleccionar Comunidades', lista_comunidades, default=st.session_state.comunidades_seleccionadas)
+        st.session_state.comunidades_seleccionadas = comunidades_seleccionadas
+
+        if vista_detallada:
+            if comunidades_seleccionadas:
+                centros_disponibles = sorted(df_original[df_original['Comunidad Autónoma'].isin(comunidades_seleccionadas)]['Centro'].unique().tolist())
+                if not all(centro in centros_disponibles for centro in st.session_state.centros_seleccionados):
+                    st.session_state.centros_seleccionados = centros_disponibles
+                
+                st.write("Gestionar Selección de Centros:")
+                col1, col2 = st.columns([0.7, 0.3])
+                with col1:
+                    centros_seleccionados = st.multiselect('Seleccionar Centros', centros_disponibles, default=st.session_state.centros_seleccionados, label_visibility="collapsed")
+                with col2:
+                    if st.button("Todos", help="Seleccionar todos los centros"):
+                        st.session_state.centros_seleccionados = centros_disponibles
+                        st.rerun()
+                st.session_state.centros_seleccionados = centros_seleccionados
+            else:
+                centros_seleccionados = []
+        else:
+            centros_seleccionados = []
+
+# --- Lógica de la Aplicación Principal (fuera de la barra lateral) ---
+if 'df_original' in locals() and not df_original.empty:
+    # --- Mapeo de Medidas, Funciones de Categorización, etc. ---
+    # ... (El resto de tu código desde la definición de `mapeo_medidas` en adelante permanece aquí) ...
 
     # --- Mapeo de Medidas Centralizado y Mejorado ---
 mapeo_medidas = {
