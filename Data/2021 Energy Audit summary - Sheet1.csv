@@ -1,4 +1,4 @@
-Comunidad Autónoma,Centro,Medida,Energía Ahorrada (kWh/año),Dinero Ahorrado (€/año),Inversión (€),Período de Amortización (años)
+Comunidad Autónoma,Center,Measure,Energy Saved,Money Saved,Investment,Pay back period
 Cataluña,Sant Cugat del Vallès,Optimización de la potencia contratada,0,20795,9,0
 Cataluña,Sant Cugat del Vallès,Mejora en el control de la iluminación,2533,187,500,2.7
 Cataluña,Sant Cugat del Vallès,Aislamiento Térmico de Tuberías y Redes,4110,210,420,2
@@ -336,3 +336,4 @@ Madrid,Valdemoro,Eliminación de la energía reactiva,0,293,832,2.8
 Madrid,Valdemoro,Reducción del consumo remanente,564,99,200,2
 Madrid,Valdemoro,Optimización de la potencia contratada,0,471,9,0
 Madrid,Valdemoro,Sustitución de Equipos de Climatización,17457,2691,47279,17.6
+
