@@ -52,26 +52,41 @@ if not df_original.empty:
         st.session_state.comunidades_seleccionadas = sorted(df_original['Comunidad Autónoma'].unique().tolist())
 
     # --- Mapeo de Medidas Centralizado y Mejorado ---
-    mapeo_medidas = {
-        "Regulación de la temperatura de consigna": {"Category": "Medidas de control térmico", "Code": "A.1"},
-        "Sustitución de equipos de climatización": {"Category": "Medidas de control térmico", "Code": "A.2"},
-        "Instalación cortina de aire": {"Category": "Medidas de control térmico", "Code": "A.3"},
-        "Instalación de temporizador digital": {"Category": "Medidas de control térmico", "Code": "A.4"},
-        "Regulación de ventilación mediante sonda de CO2": {"Category": "Medidas de control térmico", "Code": "A.5"},
-        "Recuperadores de calor": {"Category": "Medidas de control térmico", "Code": "A.6"},
-        "Ajuste O2 en caldera gasóleo C": {"Category": "Medidas de control térmico", "Code": "A.7"},
-        "Instalación de Variadores de frecuencia en bombas hidráulicas": {"Category": "Medidas de control térmico", "Code": "A.8"},
-        "Instalación Solar térmica": {"Category": "Medidas de control térmico", "Code": "A.9"},
-        "Optimización de la potencia contratada": {"Category": "Medidas de gestión energética", "Code": "B.1"},
-        "Sistema de Gestión Energética": {"Category": "Medidas de gestión energética", "Code": "B.2"},
-        "Eliminación de la energía reactiva": {"Category": "Medidas de gestión energética", "Code": "B.3"},
-        "Reducción del consumo remanente": {"Category": "Medidas de gestión energética", "Code": "B.4"},
-        "Promover la cultura energética": {"Category": "Medidas de gestión energética", "Code": "B.5"},
-        "Instalación Fotovoltaica": {"Category": "Medidas de gestión energética", "Code": "B.6"},
-        "Cambio Iluminacion LED": {"Category": "Medidas de control de iluminación", "Code": "C.1"},
-        "Instalación regletas programables": {"Category": "Medidas de control de iluminación", "Code": "C.2"},
-        "Mejora en el control de la iluminación": {"Category": "Medidas de control de iluminación", "Code": "C.3"}
-    }
+mapeo_medidas = {
+    # --- Medidas de control térmico ---
+    "Regulación de la temperatura de consigna": {"Category": "Medidas de control térmico", "Code": "A.1"},
+    "Sustitución de equipos de climatización": {"Category": "Medidas de control térmico", "Code": "A.2"},
+    "Instalación cortina de aire": {"Category": "Medidas de control térmico", "Code": "A.3"},
+    "Instalación de temporizador digital": {"Category": "Medidas de control térmico", "Code": "A.4"},
+    "Regulación de ventilación mediante sonda de CO2": {"Category": "Medidas de control térmico", "Code": "A.5"},
+    "Recuperadores de calor": {"Category": "Medidas de control térmico", "Code": "A.6"},
+    "Ajuste O2 en caldera gasóleo C": {"Category": "Medidas de control térmico", "Code": "A.7"},
+    "Instalación de Variadores de frecuencia en bombas hidráulicas": {"Category": "Medidas de control térmico", "Code": "A.8"},
+    "Instalación Solar térmica": {"Category": "Medidas de control térmico", "Code": "A.9"},
+    "Aislamiento Térmico de Tuberías y Redes": {"Category": "Medidas de control térmico", "Code": "A.10"}, # <-- NUEVO
+    "Mejora de la Eficiencia en Calderas": {"Category": "Medidas de control térmico", "Code": "A.11"},    # <-- NUEVO
+
+    # --- Medidas de gestión energética ---
+    "Optimización de la potencia contratada": {"Category": "Medidas de gestión energética", "Code": "B.1"},
+    "Sistema de Gestión Energética": {"Category": "Medidas de gestión energética", "Code": "B.2"},
+    "Eliminación de la energía reactiva": {"Category": "Medidas de gestión energética", "Code": "B.3"},
+    "Reducción del consumo remanente": {"Category": "Medidas de gestión energética", "Code": "B.4"},
+    "Promover la cultura energética": {"Category": "Medidas de gestión energética", "Code": "B.5"},
+    "Instalación Fotovoltaica": {"Category": "Medidas de gestión energética", "Code": "B.6"},
+    "Instalación de Paneles Solares (Fotovoltaicos o Híbridos)": {"Category": "Medidas de gestión energética", "Code": "B.6"}, # <-- NUEVO (agrupado con B.6)
+
+    # --- Medidas de control de iluminación ---
+    "Cambio Iluminacion LED": {"Category": "Medidas de control de iluminación", "Code": "C.1"},
+    "Sustitución de luminarias a LED": {"Category": "Medidas de control de iluminación", "Code": "C.1"}, # <-- NUEVO (agrupado con C.1)
+    "Instalación regletas programables": {"Category": "Medidas de control de iluminación", "Code": "C.2"},
+    "Mejora en el control de la iluminación": {"Category": "Medidas de control de iluminación", "Code": "C.3"},
+    "Mejora en el control actual de iluminación": {"Category": "Medidas de control de iluminación", "Code": "C.3"}, # <-- NUEVO (agrupado con C.3)
+    "Mejora en el control actual": {"Category": "Medidas de control de iluminación", "Code": "C.3"}, # <-- NUEVO (agrupado con C.3)
+    "Sustitución de luminarias a LED y mejora en su control": {"Category": "Medidas de control de iluminación", "Code": "C.4"}, # <-- NUEVO
+
+    # --- Medidas de equipamiento general ---
+    "Renovación de Equipamiento Específico": {"Category": "Medidas de equipamiento general", "Code": "D.1"} # <-- NUEVO y nueva categoría
+}
     
     # --- Funciones Auxiliares para la Categorización ---
     def categorizar_por_tipo(df_in):
