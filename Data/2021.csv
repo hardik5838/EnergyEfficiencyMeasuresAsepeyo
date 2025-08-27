@@ -97,12 +97,6 @@ Valenciana,Elche,Eliminación de la energía reactiva,0,833,705,0.8
 Valenciana,Elche,Instalación cortina de aire,8546,813,2400,3
 Valenciana,Elche,Sistema de Gestión Energética,5510,524,1995,3.8
 Valenciana,Elche,Sustitución de luminarias a LED y mejora en su control,17561,1670,9236,5.5
-Valenciana,Elche,Regulación de la temperatura de consigna,2225,212,0,0
-Valenciana,Elche,Optimización de la potencia contratada,0,119,904,0.1
-Valenciana,Elche,Eliminación de la energía reactiva,0,833,705,0.8
-Valenciana,Elche,Instalación cortina de aire,8546,813,2400,3
-Valenciana,Elche,Sistema de Gestión Energética,5510,524,1995,3.8
-Valenciana,Elche,Sustitución de luminarias a LED y mejora en su control,17561,1670,9236,5.5
 Cataluña,Gavà,Optimización de la potencia contratada,0,200,9,0
 Cataluña,Gavà,Regulación de la temperatura de consigna,2739,266,0,0
 Cataluña,Gavà,Sustitución de luminarias a LED,9962,968,1119,1.2
@@ -336,6 +330,7 @@ Madrid,Valdemoro,Eliminación de la energía reactiva,0,293,832,2.8
 Madrid,Valdemoro,Reducción del consumo remanente,564,99,200,2
 Madrid,Valdemoro,Optimización de la potencia contratada,0,471,9,0
 Madrid,Valdemoro,Sustitución de Equipos de Climatización,17457,2691,47279,17.6
+
 
 
 
