@@ -24,9 +24,9 @@ def load_data(file_path):
         df.rename(columns={
             'Center': 'Centro', 'Measure': 'Medida',
             'Energy Saved': 'Ahorro energético', 'Money Saved': 'Ahorro económico',
-            'Investment': 'Inversión', 'Pay back period': 'Período de retorno',
+            'Investment': 'Inversión', 'Pay back period': 'Periodo de retorno',
             'Energía Ahorrada (kWh/año)': 'Ahorro energético', 'Dinero Ahorrado (€/año)': 'Ahorro económico',
-            'Inversión (€)': 'Inversión', 'Período de Amortización (años)': 'Periodo de retorno'
+            'Inversión (€)': 'Inversión', 'Periodo de Amortización (años)': 'Periodo de retorno'
         }, inplace=True)
         for col in ['Ahorro energético', 'Ahorro económico', 'Inversión', 'Periodo de retorno']:
             df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -334,7 +334,7 @@ if 'df_original' in locals() and not df_original.empty:
                 st.info("No hay datos de inversión y ahorro para este filtro.	")
 
         with adv_col2:
-            st.subheader("Distribución del Período de Retorno")
+            st.subheader("Distribución del Periodo de Retorno")
             payback_data = df_filtrado[df_filtrado['Periodo de retorno'] > 0]
             if not payback_data.empty:
                 if mostrar_porcentaje:
@@ -362,7 +362,7 @@ if 'df_original' in locals() and not df_original.empty:
                 )
                 st.plotly_chart(fig_hist, use_container_width=True)
             else:
-                st.info("No hay datos del período de retorno para este filtro.")
+                st.info("No hay datos del Periodo de retorno para este filtro.")
         
         # --- Sankey Diagram (Full Width) ---
         st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
