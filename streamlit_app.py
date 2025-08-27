@@ -7,7 +7,7 @@ import os
 
 # Configuración de la página
 st.set_page_config(
-    page_title="Dashboard de Eficiencia Energética Asepeyo",
+    page_title="Dashboard de Eficiencia Energética de Asepeyo",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -24,7 +24,7 @@ def load_data(file_path):
         df.rename(columns={
             'Center': 'Centro', 'Measure': 'Medida',
             'Energy Saved': 'Ahorro energético', 'Money Saved': 'Ahorro económico',
-            'Investment': 'Inversión', 'Pay back period': 'Periodo de retorno',
+            'Investment': 'Inversión', 'Pay back period': 'Período de retorno',
             'Energía Ahorrada (kWh/año)': 'Ahorro energético', 'Dinero Ahorrado (€/año)': 'Ahorro económico',
             'Inversión (€)': 'Inversión', 'Período de Amortización (años)': 'Periodo de retorno'
         }, inplace=True)
@@ -36,12 +36,12 @@ def load_data(file_path):
         st.error(f"Error: No se encontró el archivo de datos en la ruta: {file_path}")
         return pd.DataFrame()
     except KeyError as e:
-        st.error(f"Error de columna: Una columna necesaria no se encontró. Revise el CSV. Columna faltante: {e}")
+        st.error(f"Error de columna: No se encontró la columna requerida. Revise el CSV (columna faltante: {e})")
         return pd.DataFrame()
 
 # --- Barra Lateral y Lógica de Carga de Datos ---
 with st.sidebar:
-    st.title('⚡ Filtros Asepeyo')
+    st.title('⚡ Filtros de análisis')
     
     DATA_DIR = "Data/"
     try:
@@ -87,7 +87,7 @@ with st.sidebar:
                 if not all(centro in centros_disponibles for centro in st.session_state.centros_seleccionados):
                     st.session_state.centros_seleccionados = centros_disponibles
                 
-                st.write("Gestionar Selección de Centros:")
+                st.write("Selección de Centros:")
                 col1, col2 = st.columns([0.7, 0.3])
                 with col1:
                     centros_seleccionados = st.multiselect('Seleccionar Centros', centros_disponibles, default=st.session_state.centros_seleccionados, label_visibility="collapsed")
@@ -212,7 +212,7 @@ if 'df_original' in locals() and not df_original.empty:
         columna_agrupar = 'Centro' if vista_detallada else 'Comunidad Autónoma'
 
         if vista_detallada and not centros_seleccionados:
-            st.warning("Por favor, seleccione al menos un centro para la comparación detallada.")
+            st.warning("Seleccione al menos un centro para ver la comparación detallada.")
         elif vista_detallada:
             st.header(f"Comparando {len(centros_seleccionados)} centros en {len(comunidades_seleccionadas)} comunidades")
         else:
@@ -250,7 +250,7 @@ if 'df_original' in locals() and not df_original.empty:
             fig1.update_layout(yaxis_title=y_label, xaxis_title=columna_agrupar, legend_title=tipo_analisis, template="plotly_white")
             st.plotly_chart(fig1, use_container_width=True)
 
-            st.subheader("Análisis de Ahorro Energético")
+            st.subheader("Análisis del Ahorro Energético")
             agg_energia = df_filtrado.groupby(columna_agrupar).agg(
                 Ahorro_Total_Energia=('Ahorro energético', 'sum'),
                 Medidas=('Medida', lambda x: '<br>'.join(x.unique()))
@@ -268,7 +268,7 @@ if 'df_original' in locals() and not df_original.empty:
             st.plotly_chart(fig5, use_container_width=True)
 
         with col2:
-            st.subheader("Análisis de Ahorro Económico")
+            st.subheader("Análisis del Ahorro Económico")
             agg_eco = df_filtrado.groupby(columna_agrupar).agg(
                 Ahorro_Total_Economico=('Ahorro económico', 'sum'),
                 Recuento_Medidas=('Medida', 'size')
@@ -290,7 +290,7 @@ if 'df_original' in locals() and not df_original.empty:
                 resumen_fin['Ahorro %'] = (resumen_fin['Ahorro_Total_Economico'] / ahorro_total_todo) * 100 if ahorro_total_todo > 0 else 0
                 fig7 = px.scatter(
                     resumen_fin, x='Inversión %', y='Ahorro %', text=columna_agrupar, size='Inversion_Total',
-                    color=columna_agrupar, title='% Contribución a Inversión vs. Ahorro',
+                    color=columna_agrupar, title='% de Contribución a Inversión vs. Ahorro',
                     labels={'Inversión %': '% Inversión Total', 'Ahorro %': '% Ahorro Total'}
                 )
             else:
@@ -331,10 +331,10 @@ if 'df_original' in locals() and not df_original.empty:
                 fig_burbuja.update_layout(xaxis_title=label_x, yaxis_title=label_y, legend_title=tipo_analisis)
                 st.plotly_chart(fig_burbuja, use_container_width=True)
             else:
-                st.info("No hay datos con inversión y ahorro para mostrar en el gráfico de burbujas.")
+                st.info("No hay datos de inversión y ahorro para este filtro.	")
 
         with adv_col2:
-            st.subheader("Distribución del Periodo de Retorno")
+            st.subheader("Distribución del Período de Retorno")
             payback_data = df_filtrado[df_filtrado['Periodo de retorno'] > 0]
             if not payback_data.empty:
                 if mostrar_porcentaje:
@@ -362,7 +362,7 @@ if 'df_original' in locals() and not df_original.empty:
                 )
                 st.plotly_chart(fig_hist, use_container_width=True)
             else:
-                st.info("No hay datos con periodo de retorno para mostrar en el histograma.")
+                st.info("No hay datos del período de retorno para este filtro.")
         
         # --- Sankey Diagram (Full Width) ---
         st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
