@@ -41,7 +41,7 @@ def load_data(file_path):
         return pd.DataFrame()
 
 # --- Lógica Principal de la Aplicación ---
-df_original = load_data('Data/2021 Energy Audit summary - Sheet1.csv')
+df_original = load_data('Data/2025 Energy Audit summary - Sheet1.csv')
 
 if not df_original.empty:
 
