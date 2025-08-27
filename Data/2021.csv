@@ -23,7 +23,7 @@ EUSKADI,Durango,Instalación cortina de aire,4039,305,1200,3.9
 EUSKADI,Durango,Sistema de Gestión Energética,2271,172,1095,6.4
 Madrid,Coslada,Sistema de Gestión Energética,101046,10547,35,0.3
 Madrid,Coslada,Optimización de la potencia contratada,0,1164,9,0.2
-Madrid,Coslada,Renovación de Equipamiento Específico,1533000,5036,1677,3.3
+Madrid,Coslada,Renovación de Equipamiento Específico,1533,5036,1677,3.3
 Madrid,Coslada,Sustitución de luminarias a LED,211918,15667,21061,1.3
 Madrid,Coslada,Renovación de Equipamiento Específico,1825,13492,75,5.6
 Madrid,Coslada,Instalación de Recuperadores de Calor,35584,4054,57432,14.2
@@ -336,4 +336,5 @@ Madrid,Valdemoro,Eliminación de la energía reactiva,0,293,832,2.8
 Madrid,Valdemoro,Reducción del consumo remanente,564,99,200,2
 Madrid,Valdemoro,Optimización de la potencia contratada,0,471,9,0
 Madrid,Valdemoro,Sustitución de Equipos de Climatización,17457,2691,47279,17.6
+
 
