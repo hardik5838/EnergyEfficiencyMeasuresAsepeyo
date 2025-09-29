@@ -15,10 +15,10 @@ st.set_page_config(
 
 # --- Carga y Cacheo de Datos ---
 @st.cache_data
-def load_data(file_path):
-    """Carga, limpia y procesa los datos de la auditoría energética."""
+def load_data(file_path, delimiter=','):
+    """Carga, limpia y procesa los datos de un archivo CSV."""
     try:
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, delimiter=delimiter)
         df.columns = df.columns.str.strip()
         # Unifica el renombrado para manejar tanto CSVs en inglés como en español
         df.rename(columns={
@@ -26,41 +26,88 @@ def load_data(file_path):
             'Energy Saved': 'Ahorro energético', 'Money Saved': 'Ahorro económico',
             'Investment': 'Inversión', 'Pay back period': 'Periodo de retorno',
             'Energía Ahorrada (kWh/año)': 'Ahorro energético', 'Dinero Ahorrado (€/año)': 'Ahorro económico',
-            'Inversión (€)': 'Inversión', 'Periodo de Amortización (años)': 'Periodo de retorno'
+            'Inversión (€)': 'Inversión', 'Periodo de Amortización (años)': 'Periodo de retorno',
+            # Columnas del archivo de gas
+            'Base imponible (€)': 'Ahorro económico', 'Consumo': 'Ahorro energético'
         }, inplace=True)
+
+        # Añadir columnas que podrían no estar en el CSV de gas
+        for col in ['Inversión', 'Periodo de retorno', 'Medida', 'Comunidad Autónoma', 'Centro']:
+            if col not in df.columns:
+                df[col] = 0 if col in ['Inversión', 'Periodo de retorno'] else 'N/A'
+
         for col in ['Ahorro energético', 'Ahorro económico', 'Inversión', 'Periodo de retorno']:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            if col in df.columns:
+                # Limpiar y convertir a numérico
+                if df[col].dtype == 'object':
+                    df[col] = df[col].str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
         df.fillna(0, inplace=True)
         return df
     except FileNotFoundError:
         st.error(f"Error: No se encontró el archivo de datos en la ruta: {file_path}")
         return pd.DataFrame()
-    except KeyError as e:
-        st.error(f"Error de columna: No se encontró la columna requerida. Revise el CSV (columna faltante: {e})")
+    except Exception as e:
+        st.error(f"Error al procesar el archivo {file_path}: {e}")
         return pd.DataFrame()
+
 
 # --- Barra Lateral y Lógica de Carga de Datos ---
 with st.sidebar:
     st.title('⚡ Filtros de análisis')
-    
-    DATA_DIR = "Data/"
+
+    DATA_DIR = "./" # Asumiendo que los archivos están en el directorio raíz o en 'Data/'
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+
     try:
         files = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv')]
         if not files:
-            st.warning("No se encontraron archivos CSV en la carpeta 'Data/'.")
+            st.warning("No se encontraron archivos CSV en el directorio actual.")
             st.stop()
-        
-        selected_file = st.selectbox(
+
+        st.header("Auditoría Energética (Electricidad)")
+        selected_file_elec = st.selectbox(
             "Seleccionar Auditoría", files,
-            index=files.index("2025 Energy Audit summary - Sheet1.csv") if "2025 Energy Audit summary - Sheet1.csv" in files else 0
+            index=files.index("2025 Energy Audit summary - Sheet1.csv") if "2025 Energy Audit summary - Sheet1.csv" in files else 0,
+            key="sb_elec"
         )
-        file_path = os.path.join(DATA_DIR, selected_file)
-        df_original = load_data(file_path)
+        file_path_elec = os.path.join(DATA_DIR, selected_file_elec)
+        df_elec = load_data(file_path_elec)
+        if not df_elec.empty:
+            df_elec['Tipo de Suministro'] = 'Electricidad'
+
+        st.header("Facturas de Gas")
+        selected_file_gas = st.selectbox(
+            "Seleccionar archivo de Gas", files,
+            index=files.index("29092025_FacturaES1.csv") if "29092025_FacturaES1.csv" in files else 0,
+            key="sb_gas"
+        )
+        file_path_gas = os.path.join(DATA_DIR, selected_file_gas)
+        df_gas = load_data(file_path_gas, delimiter=';')
+        if not df_gas.empty:
+            df_gas['Tipo de Suministro'] = 'Gas'
+            # Mapear columnas de gas a las columnas estándar del dashboard
+            df_gas.rename(columns={'Provincia': 'Comunidad Autónoma', 'Nombre suministro': 'Centro'}, inplace=True)
+
+
+        # Combinar DataFrames
+        df_original = pd.concat([df_elec, df_gas], ignore_index=True)
+
     except FileNotFoundError:
         st.error(f"El directorio '{DATA_DIR}' no fue encontrado.")
         st.stop()
 
     if not df_original.empty:
+        tipo_suministro = st.radio(
+            "Seleccionar Tipo de Suministro",
+            ('Ambos', 'Electricidad', 'Gas')
+        )
+        if tipo_suministro != 'Ambos':
+            df_original = df_original[df_original['Tipo de Suministro'] == tipo_suministro]
+
+
         tipo_analisis = st.radio(
             "Seleccionar Tipo de Análisis",
             ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio', 'Tipo de Ahorro Energético')
@@ -69,15 +116,15 @@ with st.sidebar:
         st.markdown("---")
         vista_detallada = st.toggle('Mostrar vista detallada por centro')
 
-        if 'last_file' not in st.session_state or st.session_state.last_file != selected_file:
-            st.session_state.last_file = selected_file
+        if 'last_file' not in st.session_state or st.session_state.last_file != (selected_file_elec, selected_file_gas):
+            st.session_state.last_file = (selected_file_elec, selected_file_gas)
             st.session_state.comunidades_seleccionadas = sorted(df_original['Comunidad Autónoma'].unique().tolist())
             st.session_state.centros_seleccionados = []
-        
+
         lista_comunidades = sorted(df_original['Comunidad Autónoma'].unique().tolist())
         if st.button("Todas las Comunidades", use_container_width=True):
             st.session_state.comunidades_seleccionadas = lista_comunidades
-        
+
         comunidades_seleccionadas = st.multiselect('Seleccionar Comunidades', lista_comunidades, default=st.session_state.comunidades_seleccionadas)
         st.session_state.comunidades_seleccionadas = comunidades_seleccionadas
 
@@ -86,7 +133,7 @@ with st.sidebar:
                 centros_disponibles = sorted(df_original[df_original['Comunidad Autónoma'].isin(comunidades_seleccionadas)]['Centro'].unique().tolist())
                 if not all(centro in centros_disponibles for centro in st.session_state.centros_seleccionados):
                     st.session_state.centros_seleccionados = centros_disponibles
-                
+
                 st.write("Selección de Centros:")
                 col1, col2 = st.columns([0.7, 0.3])
                 with col1:
@@ -101,7 +148,8 @@ with st.sidebar:
         else:
             centros_seleccionados = []
 
-# --- Lógica de la Aplicación Principal ---
+# --- El resto del código principal de la aplicación sigue aquí ---
+# (No es necesario modificar el resto del código si las columnas de df_filtrado son correctas)
 if 'df_original' in locals() and not df_original.empty:
     
     mapeo_medidas = {
@@ -135,6 +183,8 @@ if 'df_original' in locals() and not df_original.empty:
         
     def categorizar_por_tipo(df_in):
         def get_info(texto_medida):
+            if texto_medida == 'N/A': # Manejar datos de gas sin medida específica
+                return pd.Series(['Consumo de Gas', 'G.1'])
             for nombre_estandar, info in mapeo_medidas.items():
                 if nombre_estandar.lower() in texto_medida.lower():
                     return pd.Series([info['Category'], info['Code']])
@@ -144,6 +194,7 @@ if 'df_original' in locals() and not df_original.empty:
 
     def categorizar_por_intervencion(df_in):
         def get_type(medida):
+            if medida == 'N/A': return 'Consumo Directo'
             medida = medida.lower()
             if any(word in medida for word in ["instalación", "batería", "recuperadores", "solar", "fotovoltaica"]): return 'Instalación de Nuevos Sistemas'
             if any(word in medida for word in ["sustitución", "cambio", "mejora", "aislamiento"]): return 'Reforma y Actualización de Equipos'
@@ -163,6 +214,7 @@ if 'df_original' in locals() and not df_original.empty:
 
     def categorizar_por_funcion(df_in):
         def get_type(medida):
+            if medida == 'N/A': return 'Suministro de Gas'
             medida = medida.lower()
             if any(word in medida for word in ["hvac", "climatización", "temperatura", "ventilación", "aislamiento", "cortina", "calor", "termo"]): return 'Envolvente y Climatización (HVAC)'
             if any(word in medida for word in ["led", "iluminación", "luminarias", "eléctrico", "potencia", "reactiva", "condensadores", "regletas"]): return 'Iluminación y Electricidad'
@@ -173,6 +225,7 @@ if 'df_original' in locals() and not df_original.empty:
         
     def categorizar_por_ahorro_energetico(df_in):
         def get_type(medida):
+            if medida == 'N/A': return 'Ahorros Térmicos (Gas/Combustible)'
             medida = medida.lower()
             if any(word in medida for word in ["gasóleo", "diesel", "caldera", "térmica"]): return 'Ahorros Térmicos (Gas/Combustible)'
             if any(word in medida for word in ["led", "iluminación", "fotovoltaica", "eléctrico", "potencia", "reactiva", "variadores", "bombas", "regletas"]): return 'Ahorros Eléctricos'
@@ -200,7 +253,7 @@ if 'df_original' in locals() and not df_original.empty:
 
     # --- Renderizado del Panel Principal ---
     st.image("Logo_ASEPEYO.png", width=250)
-    st.title(f"Análisis de Eficiencia Energética - {selected_file.replace('.csv', '')}") # Título dinámico
+    st.title(f"Análisis de Eficiencia Energética")
     
     # --- RENDERIZADO DE KPIs, GRÁFICOS Y TABLAS ---
     if not df_filtrado.empty:
