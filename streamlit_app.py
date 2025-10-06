@@ -228,7 +228,7 @@ if 'df_original' in locals() and not df_original.empty:
         kpi1.metric(label="Inversión Total", value=f"€ {inversion_total:,.0f}")
         kpi2.metric(label="Ahorro Económico Total", value=f"€ {ahorro_economico_total:,.0f}")
         kpi3.metric(label="Ahorro Energético Total", value=f"{ahorro_energetico_total:,.0f} kWh")
-        kpi4.metric(label="Retorno de la Inversión (ROI)", value=f"{roi:.2f} %")
+        kpi4.metric(label="Retorno de la Inversión (Cada ano)", value=f"{roi:.2f} %")
         st.markdown("---")
 
         col1, col2 = st.columns(2, gap="large")
