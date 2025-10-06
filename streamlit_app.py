@@ -64,7 +64,7 @@ with st.sidebar:
     if not df_original.empty:
         tipo_analisis = st.radio(
             "Seleccionar Tipo de Análisis",
-            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Función de Negocio', 'Tipo de Ahorro Energético')
+            ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Tipo de sistema', 'Tipo de Ahorro Energético')
         )
         mostrar_porcentaje = st.toggle('Mostrar valores en porcentaje')
         st.markdown("---")
@@ -186,7 +186,7 @@ if 'df_original' in locals() and not df_original.empty:
         'Tipo de Medida': categorizar_por_tipo,
         'Tipo de Intervención': categorizar_por_intervencion,
         'Impacto Financiero': categorizar_por_financiero,
-        'Función de Negocio': categorizar_por_funcion,
+        'Tipo de sistema': categorizar_por_funcion,
         'Tipo de Ahorro Energético': categorizar_por_ahorro_energetico,
     }
     funcion_a_usar = mapa_funciones_categorizacion.get(tipo_analisis)
