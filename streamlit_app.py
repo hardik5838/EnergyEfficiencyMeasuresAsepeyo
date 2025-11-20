@@ -1,4 +1,3 @@
-
 # Importar librerías
 import streamlit as st
 import pandas as pd
@@ -43,14 +42,17 @@ def load_data(file_path):
 # --- Barra Lateral y Lógica de Carga de Datos ---
 with st.sidebar:
     st.title('⚡ Filtros de análisis')
-   
+    
     DATA_DIR = "Data/"
     try:
+        if not os.path.exists(DATA_DIR):
+            os.makedirs(DATA_DIR) # Crear carpeta si no existe para evitar crash inicial
+            
         files = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv')]
         if not files:
             st.warning("No se encontraron archivos CSV en la carpeta 'Data/'.")
             st.stop()
-       
+        
         selected_file = st.selectbox(
             "Seleccionar Auditoría", files,
             index=files.index("2025 Energy Audit summary - Sheet1.csv") if "2025 Energy Audit summary - Sheet1.csv" in files else 0
@@ -66,19 +68,51 @@ with st.sidebar:
             "Seleccionar Tipo de Análisis",
             ('Tipo de Medida', 'Tipo de Intervención', 'Impacto Financiero', 'Tipo de sistema', 'Tipo de Ahorro Energético')
         )
+        
+        # --- NUEVO CÓDIGO: Filtro condicional por Rango ROI ---
+        filtros_roi = []
+        if tipo_analisis == 'Impacto Financiero':
+            st.markdown("**Filtro de ROI (Financiero)**")
+            # Definimos las categorías manualmente para que coincidan con la función categorizar_por_financiero
+            opciones_roi = [
+                'Sin Coste / Inmediato', 
+                'Resultados Rápidos (< 2 años)', 
+                'Proyectos Estándar (2-5 años)', 
+                'Inversiones Estratégicas (> 5 años)'
+            ]
+            filtros_roi = st.multiselect(
+                "Seleccionar Rangos de ROI",
+                options=opciones_roi,
+                default=opciones_roi
+            )
+        # ------------------------------------------------------
+
         mostrar_porcentaje = st.toggle('Mostrar valores en porcentaje')
         st.markdown("---")
+        
+        # --- NUEVO CÓDIGO: Filtro por Medidas Específicas ---
+        st.write("**Filtro por Medidas**")
+        todas_medidas = sorted(df_original['Medida'].unique().tolist())
+        medidas_seleccionadas_filtro = st.multiselect(
+            "Incluir medidas específicas:",
+            options=todas_medidas,
+            default=todas_medidas,
+            placeholder="Selecciona medidas..."
+        )
+        st.markdown("---")
+        # ----------------------------------------------------
+
         vista_detallada = st.toggle('Mostrar vista detallada por centro')
 
         if 'last_file' not in st.session_state or st.session_state.last_file != selected_file:
             st.session_state.last_file = selected_file
             st.session_state.comunidades_seleccionadas = sorted(df_original['Comunidad Autónoma'].unique().tolist())
             st.session_state.centros_seleccionados = []
-       
+        
         lista_comunidades = sorted(df_original['Comunidad Autónoma'].unique().tolist())
         if st.button("Todas las Comunidades", use_container_width=True):
             st.session_state.comunidades_seleccionadas = lista_comunidades
-       
+        
         comunidades_seleccionadas = st.multiselect('Seleccionar Comunidades', lista_comunidades, default=st.session_state.comunidades_seleccionadas)
         st.session_state.comunidades_seleccionadas = comunidades_seleccionadas
 
@@ -87,7 +121,7 @@ with st.sidebar:
                 centros_disponibles = sorted(df_original[df_original['Comunidad Autónoma'].isin(comunidades_seleccionadas)]['Centro'].unique().tolist())
                 if not all(centro in centros_disponibles for centro in st.session_state.centros_seleccionados):
                     st.session_state.centros_seleccionados = centros_disponibles
-               
+                
                 st.write("Selección de Centros:")
                 col1, col2 = st.columns([0.7, 0.3])
                 with col1:
@@ -104,7 +138,7 @@ with st.sidebar:
 
 # --- Lógica de la Aplicación Principal ---
 if 'df_original' in locals() and not df_original.empty:
-   
+    
     mapeo_medidas = {
         "Regulación de la temperatura de consigna": {"Category": "Medidas de control térmico", "Code": "A.1"},
         "Sustitución de equipos de climatización": {"Category": "Medidas de control térmico", "Code": "A.2"},
@@ -133,7 +167,7 @@ if 'df_original' in locals() and not df_original.empty:
         "Sustitución de luminarias a LED y mejora en su control": {"Category": "Medidas de control de iluminación", "Code": "C.4"},
         "Renovación de Equipamiento Específico": {"Category": "Medidas de equipamiento general", "Code": "D.1"}
     }
-       
+        
     def categorizar_por_tipo(df_in):
         def get_info(texto_medida):
             for nombre_estandar, info in mapeo_medidas.items():
@@ -171,7 +205,7 @@ if 'df_original' in locals() and not df_original.empty:
             return 'Otras Funciones'
         df_in['Categoría'] = df_in['Medida'].apply(get_type)
         return df_in
-       
+        
     def categorizar_por_ahorro_energetico(df_in):
         def get_type(medida):
             medida = medida.lower()
@@ -191,6 +225,16 @@ if 'df_original' in locals() and not df_original.empty:
     }
     funcion_a_usar = mapa_funciones_categorizacion.get(tipo_analisis)
     df_categorizado = funcion_a_usar(df_original.copy())
+    
+    # --- APLICACIÓN DE FILTROS NUEVOS ---
+    # 1. Filtrar por Medidas Específicas (Sidebar)
+    if medidas_seleccionadas_filtro:
+        df_categorizado = df_categorizado[df_categorizado['Medida'].isin(medidas_seleccionadas_filtro)]
+    
+    # 2. Filtrar por ROI Bin (Si aplica)
+    if tipo_analisis == 'Impacto Financiero' and filtros_roi:
+        df_categorizado = df_categorizado[df_categorizado['Categoría'].isin(filtros_roi)]
+    # ------------------------------------
 
     if comunidades_seleccionadas:
         df_filtrado = df_categorizado[df_categorizado['Comunidad Autónoma'].isin(comunidades_seleccionadas)]
@@ -200,16 +244,20 @@ if 'df_original' in locals() and not df_original.empty:
         df_filtrado = pd.DataFrame(columns=df_categorizado.columns)
 
     # --- Renderizado del Panel Principal ---
-    st.image("Logo_ASEPEYO.png", width=250)
-    st.title(f"Análisis de Eficiencia Energética - {selected_file.replace('.csv', '')}") # Título dinámico
-   
+    try:
+        st.image("Logo_ASEPEYO.png", width=250)
+    except:
+        st.write("## ASEPEYO Dashboard") # Fallback si no hay logo
+
+    st.title(f"Análisis de Eficiencia Energética - {selected_file.replace('.csv', '')}") 
+    
     # --- RENDERIZADO DE KPIs, GRÁFICOS Y TABLAS ---
     if not df_filtrado.empty:
         if tipo_analisis == 'Tipo de Medida':
             df_filtrado['Frecuencia'] = df_filtrado.groupby(['Comunidad Autónoma', 'Base Código Medida']).cumcount() + 1
             df_filtrado['Código Medida'] = df_filtrado.apply(
                 lambda row: f"{row['Base Código Medida']}.{row['Frecuencia']}" if row['Base Código Medida'] != 'Z.Z' else 'Sin categorizar', axis=1)
-       
+        
         columna_agrupar = 'Centro' if vista_detallada else 'Comunidad Autónoma'
 
         if vista_detallada and not centros_seleccionados:
@@ -277,13 +325,13 @@ if 'df_original' in locals() and not df_original.empty:
             fig6 = px.pie(agg_eco, names=columna_agrupar, values='Ahorro_Total_Economico', title=f'Contribución al Ahorro Económico por {columna_agrupar}', hole=0.4, hover_data=['Recuento_Medidas'])
             fig6.update_traces(hovertemplate='<b>%{label}</b><br>Ahorro Económico: €%{value:,.0f}<br>Nº de Medidas: %{customdata[0]}<extra></extra>')
             st.plotly_chart(fig6, use_container_width=True)
-           
+            
             st.subheader("Inversión vs. Ahorro Económico")
             resumen_fin = df_filtrado.groupby(columna_agrupar).agg(
                 Inversion_Total=('Inversión', 'sum'),
                 Ahorro_Total_Economico=('Ahorro económico', 'sum')
             ).reset_index()
-           
+            
             if mostrar_porcentaje and not resumen_fin.empty:
                 inversion_total_todo = resumen_fin['Inversion_Total'].sum()
                 ahorro_total_todo = resumen_fin['Ahorro_Total_Economico'].sum()
@@ -302,7 +350,7 @@ if 'df_original' in locals() and not df_original.empty:
             fig7.update_traces(textposition='top center')
             fig7.update_layout(xaxis_title="Inversión (€)", yaxis_title="Ahorro Anual (€)", template="plotly_white")
             st.plotly_chart(fig7, use_container_width=True)
-       
+        
         st.markdown("---")
         st.header("Análisis Avanzado")
         adv_col1, adv_col2 = st.columns(2, gap="large")
@@ -346,7 +394,7 @@ if 'df_original' in locals() and not df_original.empty:
                     histnorm_val = None
                     y_axis_title = 'Número de Medidas'
                     title_text = "Distribución de los Periodos de Retorno"
-               
+                
                 fig_hist = px.histogram(
                     payback_data,
                     x='Periodo de retorno',
@@ -356,7 +404,7 @@ if 'df_original' in locals() and not df_original.empty:
                     template="plotly_white",
                     title=title_text
                 )
-               
+                
                 fig_hist.update_layout(
                     xaxis_title="Periodo de Retorno (Años)",
                     yaxis_title=y_axis_title
@@ -364,7 +412,7 @@ if 'df_original' in locals() and not df_original.empty:
                 st.plotly_chart(fig_hist, use_container_width=True)
             else:
                 st.info("No hay datos del Periodo de retorno para este filtro.")
-       
+        
         # --- Sankey Diagram (Full Width) ---
         st.subheader("Flujo de Inversión y Ahorro (Diagrama de Sankey)")
         datos_sankey = df_filtrado.groupby(['Categoría', columna_agrupar]).agg(Inversion_Total=('Inversión', 'sum'), Ahorro_Total=('Ahorro económico', 'sum')).reset_index()
@@ -380,7 +428,7 @@ if 'df_original' in locals() and not df_original.empty:
                 ))])
             fig_sankey.update_layout(title_text=f"Flujo de Categoría a {columna_agrupar} por Inversión", font_size=12)
             st.plotly_chart(fig_sankey, use_container_width=True)
-       
+        
         st.markdown("---")
         st.header("Tablas de Datos")
 
@@ -413,4 +461,3 @@ if 'df_original' in locals() and not df_original.empty:
 
 else:
     st.warning("No se pudieron cargar los datos. Por favor, revise la ruta del archivo e inténtelo de nuevo.")
-
