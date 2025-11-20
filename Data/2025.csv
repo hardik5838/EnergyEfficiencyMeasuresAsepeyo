@@ -91,6 +91,15 @@ Castilla Y Leon,Valladolid,Sistema de Gestión Energética,4155,1385,2495,1.8
 Castilla Y Leon,Valladolid,Regulación de la temperatura de consigna,4358,1452,0,0
 Castilla Y Leon,Valladolid,Instalación de temporizador digital en termo eléctrico,3794,1264,40,0
 Castilla Y Leon,Valladolid,Reducción del consumo remanente,3193,1064,319,0.3
+Cataluña,Sant Cugat del Vallès,Optimización de la potencia contratada,0,20795,9,0
+Cataluña,Sant Cugat del Vallès,Mejora en el control de la iluminación,2533,187,500,2.7
+Cataluña,Sant Cugat del Vallès,Aislamiento Térmico de Tuberías y Redes,4110,210,420,2
+Cataluña,Sant Cugat del Vallès,Mejora de la Eficiencia en Calderas,28769,1467,0,0
+Cataluña,Sant Cugat del Vallès,Sustitución de luminarias a LED,72128,5330,8364,1.6
+Cataluña,Sant Cugat del Vallès,Mejora de la Eficiencia en Calderas,82197,4219,13500,3.2
+Cataluña,Sant Cugat del Vallès,Instalación de Recuperadores de Calor,168220,8635,24000,2.8
+Cataluña,Sant Cugat del Vallès,Instalación de Recuperadores de Calor,359876,18472,85631,4.6
+Cataluña,Sant Cugat del Vallès,Instalación de Paneles Solares (Fotovoltaicos o Híbridos),90884,6725,43500,6.5
 Cataluña,Badalona Nuevo,Regulación de la temperatura de consigna,1787,352,0,0
 Cataluña,Badalona Nuevo,Instalación cortina de aire,5009,987,1200,1.2
 Cataluña,Badalona Nuevo,Sistema de Gestión Energética,2119,418,1500,3.6
@@ -404,3 +413,4 @@ Murcia,Murcia,Instalación cortina de aire,3145,1056,2400,2.3
 Murcia,Murcia,Sistema de Gestión Energética,3352,1126,2495,2.2
 Murcia,Murcia,Eliminación de la energía reactiva,0,448,1491,3.3
 Murcia,Murcia,Mejora en el control de la iluminación,1218,409,540,1.3
+
