@@ -461,3 +461,95 @@ if 'df_original' in locals() and not df_original.empty:
 
 else:
     st.warning("No se pudieron cargar los datos. Por favor, revise la ruta del archivo e inténtelo de nuevo.")
+
+
+
+# -------------------------------------------------------------------
+        # --- NUEVO CÓDIGO: INFORME CONSOLIDADO Y TABLAS POR COMUNIDAD ---
+        # -------------------------------------------------------------------
+        st.markdown("---")
+        st.header("Informe Consolidado de Medidas de Eficiencia Energética")
+        st.write("**Nota:** Los valores de inversión incluyen IVA.")
+
+        # Función auxiliar para generar las tablas con el formato solicitado
+        def generar_tabla_resumen(df_datos):
+            if df_datos.empty:
+                return pd.DataFrame()
+            
+            # Agrupar por 'Medida' para obtener Recuento e Inversión Total
+            tabla = df_datos.groupby('Medida').agg(
+                Recuento=('Medida', 'count'),
+                Inversión_Total=('Inversión', 'sum')
+            ).reset_index()
+            
+            # Renombrar columna
+            tabla.rename(columns={'Inversión_Total': 'Inversión Total'}, inplace=True)
+            
+            # Calcular 'Avg.' (Promedio por medida)
+            # Nota: controlamos división por cero en caso de recuento 0 (aunque por el groupby será mínimo 1)
+            tabla['Avg.'] = (tabla['Inversión Total'] / tabla['Recuento']).fillna(0).round().astype(int)
+            
+            # Ordenar por inversión total (opcional para mejor visualización, o se puede dejar alfabético)
+            tabla = tabla.sort_values('Inversión Total', ascending=False)
+            
+            # Crear la fila de Total
+            total_recuento = tabla['Recuento'].sum()
+            total_inversion = tabla['Inversión Total'].sum()
+            # En tu ejemplo, el Total Avg es la suma de la columna Avg.
+            total_avg = tabla['Avg.'].sum() 
+            
+            fila_total = pd.DataFrame([{
+                'Medida': 'Total',
+                'Recuento': total_recuento,
+                'Inversión Total': total_inversion,
+                'Avg.': total_avg
+            }])
+            
+            # Añadir la fila de totales al final
+            tabla_final = pd.concat([tabla, fila_total], ignore_index=True)
+            return tabla_final
+
+        # 1. Tabla Nacional Consolidada (usamos df_original para los totales globales)
+        st.subheader("Tabla Nacional Consolidada")
+        st.write("La tabla general muestra el panorama completo de las medidas implementadas, con su recuento, inversión total y promedio.")
+        
+        # Ojo: Utilizo df_original para que coincida siempre con el panorama completo de los datos base. 
+        # Si prefieres que dependa de los filtros del sidebar, cambia 'df_original' por 'df_filtrado' aquí abajo.
+        tabla_nacional = generar_tabla_resumen(df_original)
+        
+        st.dataframe(
+            tabla_nacional, 
+            use_container_width=True, 
+            hide_index=True,
+            column_config={
+                "Inversión Total": st.column_config.NumberColumn("Inversión Total (€)"),
+                "Avg.": st.column_config.NumberColumn("Avg. (€)")
+            }
+        )
+
+        # 2. Tablas por Comunidad Autónoma
+        st.markdown("---")
+        st.subheader("Tablas por Comunidad Autónoma")
+
+        # Obtenemos las comunidades únicas presentes en los datos
+        comunidades_disponibles = sorted(df_original['Comunidad Autónoma'].dropna().unique().tolist())
+
+        # Iterar sobre cada comunidad para crear su propia tabla
+        for comunidad in comunidades_disponibles:
+            st.markdown(f"#### {comunidad}")
+            df_comunidad = df_original[df_original['Comunidad Autónoma'] == comunidad]
+            
+            tabla_comunidad = generar_tabla_resumen(df_comunidad)
+            
+            if not tabla_comunidad.empty:
+                st.dataframe(
+                    tabla_comunidad, 
+                    use_container_width=True, 
+                    hide_index=True,
+                    column_config={
+                        "Inversión Total": st.column_config.NumberColumn("Inversión Total (€)"),
+                        "Avg.": st.column_config.NumberColumn("Avg. (€)")
+                    }
+                )
+            else:
+                st.info(f"No hay medidas registradas para {comunidad}.")
