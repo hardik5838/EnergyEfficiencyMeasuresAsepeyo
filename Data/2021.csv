@@ -349,6 +349,27 @@ Andalucia,Sevilla,Depósito inercia,1132,87,2450,28.2
 Andalucia,Sevilla,Sistema de Gestión Energética,41760,3207,20409,6.4
 Andalucia,Sevilla,Vf en secundarios,14956,1149,8500,7.4
 
+Andalucía,Cadiz,Optimización de la potencia contratada,0,1257,9,0
+Andalucía,Cadiz,Instalación cortina de aire,3224,312,1200,3.8
+Andalucía,Cadiz,Sistema de Gestión Energética,2028,197,1500,7.6
+
+Andalucía,Córdoba,Sistema de Gestión Energética,2691,250,1264,5
+Andalucía,Córdoba,Regulación de la temperatura de consigna,914,85,0,0
+Andalucía,Córdoba,Optimización de la potencia contratada,0,1531,9,0
+Andalucía,Córdoba,Sustitución de luminarias a LED,5269,489,3150,6.4
+
+Andalucía,Fuengirola,Sistema de Gestión Energética,2308,223,1095,4.9
+Andalucía,Fuengirola,Regulación de la temperatura de consigna,1007,97,0,0
+Andalucía,Fuengirola,Optimización de la potencia contratada,0,176,9,0.1
+Andalucía,Fuengirola,Sustitución de luminarias a LED,8430,816,6730,8.2
+Andalucía,Fuengirola,Eliminación de la energía reactiva,0,106,705,6.7
+Andalucía,Fuengirola,Instalación cortina de aire,2479,240,1200,3
 
 
-
+Andalucía,Granada,Sistema de Gestión Energética,3692,350,1095,3
+Andalucía,Granada,Regulación de la temperatura de consigna,1702,162,0,0
+Andalucía,Granada,Optimización de la potencia contratada,0,1484,9,0
+Andalucía,Granada,Sustitución de luminarias a LED,7103,674,894,1.3
+Andalucía,Granada,Eliminación de la energía reactiva,0,930,740,0.8
+Andalucía,Granada,Instalación cortina de aire,2479,240,1200,3
+Andalucía,Granada,Control alumbrado,732,69,306,4.4
