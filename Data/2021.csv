@@ -2,6 +2,11 @@ Comunidad Autónoma,Center,Measure,Energy Saved,Money Saved,Investment,Pay back 
 Madrid,Coslada,Sistema de Gestión Energética,101046,10547,3500,0.3
 Madrid,Coslada,Optimización de la potencia contratada,0,11640,9,0.2
 Madrid,Coslada,Renovación de Equipamiento Específico,1533000,50360,167700,3.3
+Madrid,Coslada,Sustitución de luminarias a LED,211918,15667,21061,1.3
+Madrid,Coslada,Sustitución equipos de cocina,182500,13492,75000,5.6
+Madrid,Coslada,Recuperadores de Calor,35584,40540,574320,14.2
+Madrid,Coslada,Renovación de Equipamiento Específico,84000,6210,240000,38.6
+Madrid,Coslada,Renovación de Equipamiento Específico,1533000,50360,167700,3.3
 Madrid,Coslada,Instalación de Paneles Solares (Fotovoltaicos o Híbridos),173491,66095,425000,6.4
 Madrid,Coslada,Instalación de Paneles Solares (Fotovoltaicos o Híbridos),608621,45646,288000,6.3
 Valenciana,Alzira,Optimización de la potencia contratada,0,251,9,0
@@ -348,4 +353,5 @@ Andalucia,Sevilla,Instalación de Paneles Solares (Fotovoltaicos o Híbridos),54
 Andalucia,Sevilla,Depósito inercia,1132,87,2450,28.2
 Andalucia,Sevilla,Sistema de Gestión Energética,41760,3207,20409,6.4
 Andalucia,Sevilla,Vf en secundarios,14956,1149,8500,7.4
+
 
