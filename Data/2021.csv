@@ -88,10 +88,10 @@ Valenciana,Benidorm,Sustitución de luminarias a LED y mejora en su control,1468
 Valenciana,Benidorm,Regulación de la temperatura de consigna,680,66,0,0
 Valenciana,Benidorm,Eliminación de la energía reactiva,0,429,599,1.4
 Valenciana,Benidorm,Instalación cortina de aire,3049,296,1200,4
-EUSKADI,Berga,Promover la cultura energética,4117,367,0,0
-EUSKADI,Berga,Regulación de la temperatura de consigna,2449,218,0,0
-EUSKADI,Berga,Reducción del consumo remanente,1799,160,0,0
-EUSKADI,Berga,Sistema de Gestión Energética,3293,293,1095,3.7
+Cataluña,Berga,Promover la cultura energética,4117,367,0,0
+Cataluña,Berga,Regulación de la temperatura de consigna,2449,218,0,0
+Cataluña,Berga,Reducción del consumo remanente,1799,160,0,0
+Cataluña,Berga,Sistema de Gestión Energética,3293,293,1095,3.7
 Valenciana,Castellón de la Plana,Optimización de la potencia contratada,0,477,9,0
 Valenciana,Castellón de la Plana,Eliminación de la energía reactiva,0,86,200,2.3
 Valenciana,Castellón de la Plana,Instalación cortina de aire,2393,230,1200,5.2
@@ -377,3 +377,14 @@ Andalucia,Granada,Control alumbrado,732,69,306,4.4
 Andalucia,Malaga,Sistema de Gestión Energética,4802,465,1750,3.8
 Andalucia,Malaga,Optimización de la potencia contratada,0,2590,9,0
 
+Castilla y León,Burgos,Regulación de la temperatura de consigna,2407,218,0,0
+Castilla y León,Burgos,Instalación de temporizador digital en termo eléctrico,853,77,60,0.8
+Castilla y León,Burgos,Sistema de Gestión Energética,4011,363,1095,3
+Castilla y León,Burgos,Sustitución de luminarias a LED,4011,363,1095,3
+
+Cataluña,Caspe,Optimización de la potencia contratada,0,12021,9,0
+Cataluña,Caspe,Sistema de Gestión Energética,4195,391,1700,5.7
+Cataluña,Caspe,Regulación de la temperatura de consigna,1815,169,0,0
+Cataluña,Caspe,Mejora en el control de la iluminación,7614,709,900,2.5
+Cataluña,Caspe,Instalación cortina de aire,2884,276,1200,4
+Cataluña,Caspe,Instalación de Recuperadores de Calor,16648,1550,13500,5.7
